@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IDSS Školski Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #FAFAFA;
+      --primary-blue: #08ABE6;
+      --primary-yellow: #FFCB29;
+      --text-dark: #333333;
+    }
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Roboto', sans-serif;
+      color: var(--text-dark);
+    }
+    .btn {
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-blue {
+      background-color: var(--primary-blue);
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #0798ce;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(8, 171, 230, 0.3);
+    }
+    .btn-yellow {
+      background-color: var(--primary-yellow);
+      color: var(--text-dark);
+    }
+    .btn-yellow:hover {
+      background-color: #f0be26;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(255, 203, 41, 0.4);
+    }
+    .logo-glow {
+        filter: drop-shadow(0 0 8px rgba(8, 171, 230, 0.5));
+    }
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      background-color: #333;
+      color: white;
+      padding: 10px 0;
+    }
+    .marquee-content {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: marquee-scroll 150s linear infinite;
+    }
+    @keyframes marquee-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+    .card-link {
+        display: block;
+        background-color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .card-link:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        display: none;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .modal {
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        display: none;
+        z-index: 101;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .modal.active, .modal-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+    .modal.active {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: 100px repeat(5, 1fr);
+        gap: 8px;
+    }
+    .schedule-header, .schedule-time, .schedule-card, .schedule-break {
+        padding: 10px;
+        text-align: center;
+        border-radius: 6px;
+    }
+    .schedule-header {
+        background-color: #e9ecef;
+        font-weight: 700;
+    }
+    .schedule-time {
+        background-color: #f8f9fa;
+        font-weight: 500;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .schedule-card {
+        color: white;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 5px;
+    }
+    .schedule-card:hover, .schedule-card:focus {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 10;
+        outline: 2px solid var(--primary-blue);
+    }
+    .subject-mathe { background-color: #ffc107; color: #333; }
+    .subject-deutsch { background-color: #dc3545; }
+    .subject-englisch { background-color: #e83e8c; }
+    .subject-bosnisch { background-color: #fd7e14; }
+    .subject-sachkunde { background-color: #9acd32; color: #333; }
+    .subject-gesellschaft, .subject-lebenskunde, .subject-natur { background-color: #90ee90; color: #333;}
+    .subject-umweltkunde { background-color: #28a745; }
+    .subject-kunst { background-color: #add8e6; color: #333; }
+    .subject-musik { background-color: #f06292; }
+    .subject-sport { background-color: #0dcaf0; color: #333;}
+    .subject-ethik { background-color: #87ceeb; color: #333; }
+    .subject-nacharbeit { background-color: #f5deb3; color: #333; }
+    .subject-informatik { background-color: #6c757d; }
+    .subject-geografie, .subject-erdkunde { background-color: #795548; }
+    .subject-biologie { background-color: #20c997; }
+    .subject-geschichte { background-color: #ff6347; }
+    .subject-physik { background-color: #008b8b; }
+    .subject-chemie { background-color: #ff7f50; }
+    .subject-französisch { background-color: #3f51b5; }
+    .subject-grundtechniken, .subject-technik { background-color: #4682b4; }
+    .schedule-break {
+        background-color: #e0e0e0;
+        grid-column: 2 / -1;
+        font-weight: 500;
+        color: #555;
+    }
+
+    @media print {
+      /* Hide elements that are not needed for printing the schedule */
+      header, .marquee, #links-section, footer, #modal-overlay, #teacher-modal,
+      #schedule-section > .bg-white > .flex {
+        display: none;
+      }
+
+      /* Reset styles on the main containers to ensure the schedule takes up the full page */
+      body, main, #schedule-section, #schedule-section > .bg-white {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important; /* Ensure a white background for the page */
+      }
+
+      /* The printable area should not be positioned absolutely anymore */
+      #schedule-to-print {
+        position: static;
+        width: auto;
+        padding: 1em;
+        box-shadow: none;
+        border: none;
+      }
+      
+      /* Ensure colors and borders print correctly */
+      .schedule-card {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        border: 1px solid #ccc;
+      }
+
+      /* Make sure the schedule grid is not cut off */
+      #schedule-container {
+        overflow: visible !important;
+      }
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+  <header class="bg-white shadow-sm p-4 sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-4">
+        <img src="https://i.imgur.com/ZYxzQpd.png" alt="IDSS Logo" class="h-48 logo-glow">
+        <h1 class="text-2xl font-bold text-gray-800 hidden md:block" data-translate-key="pageTitle">IDSS Školski Portal</h1>
+      </div>
+      <div class="flex items-center space-x-3 md:space-x-4">
+        <select id="languageSelector" class="border rounded-md p-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#08ABE6]">
+          <option value="bs">BS</option>
+          <option value="en">EN</option>
+          <option value="de">DE</option>
+        </select>
+        <button id="printBtn" class="btn btn-yellow px-4 py-2 rounded-lg font-semibold flex items-center space-x-2">
+          <i class="fas fa-print"></i>
+          <span class="hidden md:inline" data-translate-key="print">Štampaj</span>
+        </button>
+        <button id="downloadBtn" class="btn btn-blue px-4 py-2 rounded-lg font-semibold flex items-center space-x-2">
+          <i class="fas fa-download"></i>
+          <span class="hidden md:inline" data-translate-key="download">Preuzmi</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="marquee">
+    <p class="marquee-content" data-translate-key="marqueeText">
+      Predmet: Prvi školski izlet u godini - 2. oktobar 2025. Poštovani roditelji i staratelji, sa zadovoljstvom vas obavještavamo da je prvi školski izlet za učenike planiran za četvrtak, 2. oktobra 2025. godine, ako vremenski uslovi to dozvole. Izlet će biti edukativno-sportski dan na lokaciji Babin dol na Bjelašnici. Koristit ćemo objekte Olimpijskog sportsko-rekreativnog centra '84, koji uključuju tubing stazu, skijaške staze, te fudbalske i košarkaške terene. Ručak će biti osiguran u restoranu Mechava. Prevoz će obavljati provjerena i pouzdana kompanija Travel Trans d.o.o., s kojom smo i ranije sarađivali. Cijena izleta je 37 KM po učeniku. Molimo vas da uplatu izvršite u kancelariji sekretara na ulazu u školu najkasnije do ponedjeljka, 30. septembra 2025. godine. Ovaj izlet je namijenjen svim učenicima od 1. do 9. razreda, kao i djeci iz predškolske grupe IDSS-a. Šta ponijeti: Rezervnu odjeću, kremu za sunčanje, bocu s vodom, neklizajuće sportske patike, šešir ili kačket za zaštitu od sunca. Raspored: Polazak iz škole: 9:00, procijenjeni povratak: 16:30. Roditelji su dužni dočekati djecu ispred škole. S poštovanjem, Uprava škole.
+    </p>
+  </div>
+
+  <main class="container mx-auto p-4 md:p-8">
+    
+    <!-- Schedule Section -->
+    <section id="schedule-section" class="mb-12">
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <h2 class="text-3xl font-bold text-gray-800" data-translate-key="scheduleTitle">Raspored Časova</h2>
+          <div class="flex items-center space-x-3">
+            <label for="gradeSelector" class="font-semibold" data-translate-key="selectGrade">Odaberite razred:</label>
+            <select id="gradeSelector" class="border rounded-md p-2 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#08ABE6]">
+              <option value="1">1. Razred</option>
+              <option value="2">2. Razred</option>
+              <option value="3">3. Razred</option>
+              <option value="4">4. Razred</option>
+              <option value="5">5. Razred</option>
+              <option value="6">6. Razred</option>
+              <option value="7">7. Razred</option>
+              <option value="8">8. Razred</option>
+              <option value="9">9. Razred</option>
+            </select>
+          </div>
+        </div>
+        <div id="schedule-to-print">
+            <h3 id="schedule-print-header" class="text-xl font-bold text-center mb-4 text-gray-700"></h3>
+            <div id="schedule-container" class="overflow-x-auto">
+                <!-- Schedule grid will be injected here -->
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Links Section -->
+    <section id="links-section">
+      <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center" data-translate-key="infoLinks">Informativni Linkovi</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <a href="https://drive.google.com/file/d/1-5nv_nPy3hJDKyox8ipRLdLnLFR-LTvu/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-comments text-3xl text-[#08ABE6]"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="consultationsTitle">Konsultacije</h3>
+                    <p class="text-gray-600" data-translate-key="consultationsDesc">Raspored konsultacija za nastavnike</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="#" class="card-link opacity-50 cursor-not-allowed">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-map-signs text-3xl text-gray-400"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="tripsTitle">Plan izleta i posjeta</h3>
+                    <p class="text-gray-600" data-translate-key="tripsDesc">Uskoro dostupno</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="#" class="card-link opacity-50 cursor-not-allowed">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-file-alt text-3xl text-gray-400"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="testsTitle">Pismene provjere</h3>
+                    <p class="text-gray-600" data-translate-key="testsDesc">Uskoro dostupno</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="https://drive.google.com/drive/folders/1KOhxVJsnwRvqiOY4WdEB6-Ul3a-DqYW8?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-folder-open text-3xl text-[#FFCB29]"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="documentsTitle">Dokumenti za roditelje</h3>
+                    <p class="text-gray-600" data-translate-key="documentsDesc">Formulari, uputstva i drugi dokumenti</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="https://drive.google.com/file/d/1DRaqBEDxQbZGmMtYphlcGXg63Rty83kK/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-calendar-alt text-3xl text-[#08ABE6]"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="calendarTitle">Školski kalendar</h3>
+                    <p class="text-gray-600" data-translate-key="calendarDesc">Kalendar za 2025/2026</p>
+                </div>
+            </div>
+        </a>
+        
+        <a href="https://drive.google.com/file/d/1j_jBPf1HiEvXHL5uOrSWWICYO8HhhPlB/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-gavel text-3xl text-[#FFCB29]"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="rulesBsTitle">Školski pravilnik (BS)</h3>
+                    <p class="text-gray-600" data-translate-key="rulesBsDesc">Pravilnik na bosanskom jeziku</p>
+                </div>
+            </div>
+        </a>
+        
+        <a href="https://drive.google.com/file/d/1ZRldZinyoCGc56tIMhRMgI6cuJfhQOls/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-gavel text-3xl text-[#08ABE6]"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="rulesEnDeTitle">Školski pravilnik (EN/DE)</h3>
+                    <p class="text-gray-600" data-translate-key="rulesEnDeDesc">Pravilnik na engleskom i njemačkom</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="https://drive.google.com/drive/folders/1FmmpvdjQ-iojpDcdJYfYC36_68JFqkbf?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-images text-3xl text-[#FFCB29]"></i>
+                <div>
+                    <h3 class="text-xl font-bold" data-translate-key="galleryTitle">Galerija</h3>
+                    <p class="text-gray-600" data-translate-key="galleryDesc">Fotografije sa školskih događaja</p>
+                </div>
+            </div>
+        </a>
+        
+        <div class="md:col-span-2 lg:col-span-1">
+            <div class="bg-white p-6 rounded-xl shadow-md h-full">
+                <h3 class="text-xl font-bold mb-3" data-translate-key="contactTitle">Kontakt</h3>
+                <div class="space-y-2 text-sm">
+                    <p><i class="fas fa-school w-5 text-[#08ABE6]"></i> Internationale Deutsche Schule Sarajevo</p>
+                    <p><i class="fas fa-map-marker-alt w-5 text-[#08ABE6]"></i> Buka 13, Mejtaš — 71 000 Sarajevo</p>
+                    <p><i class="fas fa-phone-alt w-5 text-[#08ABE6]"></i> +387 33 560 520</p>
+                    <p><i class="fas fa-mobile-alt w-5 text-[#08ABE6]"></i> +387 60 345 1275</p>
+                    <p><i class="fas fa-envelope w-5 text-[#08ABE6]"></i> <a href="mailto:info@idss.ba" class="hover:underline">info@idss.ba</a></p>
+                    <p><i class="fas fa-globe w-5 text-[#08ABE6]"></i> <a href="https://www.idss.edu.ba" target="_blank" rel="noopener noreferrer" class="hover:underline">www.idss.edu.ba</a></p>
+                     <a href="https://www.google.com/maps/place/Me%C4%91unarodna+Njema%C4%8Dka+%C5%A0kola+Sarajevo/@43.8606496,18.4172141,979m/data=!3m1!1e3!4m6!3m5!1s0x4758c8d04bcdbb11:0x9e31fe8a3cbf550f!8m2!3d43.8606496!4d18.419789!16s%2Fg%2F11cjj6q5jq?entry=tts&g_ep=EgoyMDI1MDkwMy4wIPu8ASoASAFQAw%3D%3D&skid=2f80e7fd-4510-48e2-a411-fd5f650044ea" target="_blank" rel="noopener noreferrer" class="text-[#08ABE6] font-semibold mt-2 inline-block"><i class="fas fa-map-marked-alt mr-2"></i><span data-translate-key="viewOnMap">Pogledaj na mapi</span></a>
+                </div>
+            </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  
+  <footer class="bg-gray-800 text-white py-6 mt-8">
+    <div class="container mx-auto text-center text-gray-400">
+      <p>&copy; 2025 Internationale Deutsche Schule Sarajevo. <span data-translate-key="rightsReserved">Sva prava pridržana.</span></p>
+    </div>
+  </footer>
+
+  <!-- Modal -->
+  <div id="modal-overlay" class="modal-overlay"></div>
+  <div id="teacher-modal" class="modal w-11/12 max-w-md">
+    <div class="flex justify-between items-center mb-4">
+      <h3 id="modal-teacher-name" class="text-2xl font-bold"></h3>
+      <button id="close-modal-btn" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+    </div>
+    <div class="space-y-3">
+        <div id="modal-teacher-details" class="text-sm space-y-2">
+            <!-- Teacher contact details will be injected here -->
+        </div>
+        <hr class="my-3">
+        <p><strong><span data-translate-key="modalSubjects">Predmeti i zaduženja</span>:</strong></p>
+        <div id="modal-teacher-subjects" class="pl-4 text-sm max-h-48 overflow-y-auto"></div>
+    </div>
+    <button id="close-modal-btn-2" class="w-full mt-6 btn btn-blue py-2 rounded-lg" data-translate-key="modalClose">Zatvori</button>
+  </div>
+
+<script>
+const teacherData = [
+    { name: "Selma Mujanović", email: "selma.mujanovic@idss.ba", subjects: ["Class teacher 1st grade & Coordinator for Grades 1st to 4th", "Sachkunde (Science & Society) 1st to 4th grade", "Nacharbeit (Support classes) 1st grade", "Deutsch als Fremdsprache (German as a Foreign Language)"] },
+    { name: "Amra Kurešepi", email: "amra.kuresepi@idss.ba", subjects: ["Class teacher 3rd grade", "German language 1st to 4th grade"] },
+    { name: "Amina Ibrahimović Bojić", email: "amina.ibrahimovic@idss.ba", subjects: ["Class teacher 5th grade", "Bosnisch (B/H/S) 1st to 5th grade"] },
+    { name: "Amra Franca", email: "amra.franca@idss.ba", subjects: ["Class teacher 7th grade", "Bosnisch (B/H/S) 6th to 9th grade", "Bibliothek (Library)"] },
+    { name: "Melisa Babić", email: "melisa.babic@idss.ba", subjects: ["Mathematik (Mathematics) 1st to 4th grade", "Nacharbeit (Support classes) 5th grade"] },
+    { name: "Damir Anđelić", email: "damir.andjelic@idss.ba", subjects: ["Ethik (Ethics) 1st to 9th grade", "Nacharbeit (Support classes) 7th grade"] },
+    { name: "Hena Mušanović", email: "hena.musanovic@idss.ba", subjects: ["Umweltkunde (My Environment) 1st to 4th grade", "Naturkunde (Science) 5th grade", "Nacharbeit (Support classess) 3th grade", "Deutsch als Fremdsprache (German as a Foreign Language)"] },
+    { name: "Haris Hamzić", email: "haris.hamzic@idss.ba", subjects: ["Mathematik (Mathematics) 5th, 8th and 9th grade", "Grundtechniken (Basic Techniques) 5th grade", "Technik (Technical Education) 6th to 9th grade"] },
+    { name: "Sunita Kaikčija", email: "sunita.kaikcija@idss.ba", subjects: ["Erdkunde (Geography) 6th to 9th grade"] },
+    { name: "Alena Batistuti", email: "alena.batistuti@idss.ba", subjects: ["Biologie (Biology) 6th to 9th grade"] },
+    { name: "Dina Gusinac", email: "dina.gusinac@idss.ba", subjects: ["Geschichte (History) 6th to 9th grade"] },
+    { name: "Melisa Tvrtković", email: "melisa.tvrtkovic@idss.ba", subjects: ["Chemie (Chemistry) 8th and 9th grade"] },
+    { name: "Nejla Burhan", email: "nejla.burhan@idss.ba", subjects: ["Bibliothek (Library)", "Nachmittagsprogramm (Afternoon Program)"] },
+    { name: "Medina Karaga", email: "medina.karaga@idss.ba", subjects: ["Vorschule (Preschool) 5th to 6th year olds"] },
+    { name: "Semra Isanović", email: "semra.isanovic@idss.ba", subjects: ["Class teacher 2nd grade", "Deutsch (German) 5th grade", "Kunst (Art) 1st to 4th grade", "Gesellschaft (Social Studies) 5th grade", "Lebenskunde (Life Skills) 5th grade"] },
+    { name: "Anes Memić", email: "anes.memic@idss.ba", subjects: ["Class teacher 4th and 9th grade", "Sport, 1st to 9th grade"] },
+    { name: "Hana Hodžić", email: "hana.hodzic@idss.ba", subjects: ["Class teacher 6th grade", "Französisch (French) 6th to 9th grade"] },
+    { name: "Victoria Bartz", email: "victoria.bartz@idss.ba", subjects: ["Class teacher 8th grade", "Englisch (English) 5th to 9th grade"] },
+    { name: "Nejra Ljubunčić", email: "nejra.ljubuncic@idss.ba", subjects: ["Englisch (English) 1st to 4th grade"] },
+    { name: "Adna Mešić", email: "adna.mesic@idss.ba", subjects: ["Nacharbeit (Support classes) 1st to 2nd grade", "Deutsch als Fremdsprache (German as a Foreign Language)"] },
+    { name: "Nikolina Todorović", email: "nikolina.todorovic@idss.ba", subjects: ["Deutsch (German) 6th to 9th grade"] },
+    { name: "Šemsija Kulenović", email: "semsija.kulenovic@idss.ba", subjects: ["Mathematik (Mathematics) 6th and 7th grade", "Informatik (Computing) 5th to 9th grade"] },
+    { name: "Vanja Solaković", email: "vanja.solakovic@idss.ba", subjects: ["Kunst (Art) 6th to 9th grade"] },
+    { name: "Aras Samardžija", email: "aras.samardzija@idss.ba", subjects: ["Musik (Music) 1st to 9th grade"] },
+    { name: "Adela Subašić Kopić", email: "adela.subasic@idss.ba", subjects: ["Physik (Physics) 7th to 9th grade"] },
+    { name: "Irma Backes", email: "irma.backes@idss.ba", subjects: ["Nachmittagsprogramm-Leiterin (Afternoon Program Leader)", "Nacharbeit (Support classes) 4th grade"] },
+    { name: "Amela Fazlović", email: "amela.fazlovic@idss.ba", subjects: ["Vorschule (Preschool) 5th to 6th year olds"] }
+];
+
+const timetableData = {
+    '1': [
+        { time: "8:00-8:45", mon: { s: "Englisch", t: "Nejra Ljubunčić" }, tue: { s: "Deutsch", t: "Amra Kurešepi" }, wed: { s: "Mathe", t: "Melisa Babić" }, thu: { s: "Deutsch", t: "Amra Kurešepi" }, fri: { s: "Mathe", t: "Melisa Babić" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Mathe", t: "Melisa Babić" }, tue: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, wed: { s: "Musik", t: "Aras Samardžija" }, thu: { s: "Englisch", t: "Nejra Ljubunčić" }, fri: { s: "Englisch", t: "Nejra Ljubunčić" } },
+        { time: "9:55-10:40", mon: { s: "Deutsch", t: "Amra Kurešepi" }, tue: { s: "Englisch", t: "Nejra Ljubunčić" }, wed: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, thu: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, fri: { s: "Deutsch", t: "Amra Kurešepi" } },
+        { time: "10:45-11:30", mon: { s: "Umweltkunde", t: "Hena Mušanović" }, tue: { s: "Mathe", t: "Melisa Babić" }, wed: { s: "Deutsch", t: "Amra Kurešepi" }, thu: { s: "Mathe", t: "Melisa Babić" }, fri: { s: "Sachkunde", t: "Selma Mujanović" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Kunst", t: "Semra Isanović" }, tue: { s: "Umweltkunde", t: "Hena Mušanović" }, wed: { s: "Ethik", t: "Damir Anđelić" }, thu: { s: "Sport", t: "Anes Memić" }, fri: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" } },
+        { time: "13:05-13:50", mon: { s: "Kunst", t: "Semra Isanović" }, tue: { s: "Sachkunde", t: "Selma Mujanović" }, wed: { s: "Nacharbeit", t: "Selma Mujanović" }, thu: { s: "Sport", t: "Anes Memić" }, fri: { s: "Nacharbeit", t: "Selma Mujanović" } },
+        { time: "13:55-14:40", mon: { s: "Nacharbeit", t: "Selma Mujanović" }, tue: { s: "Nacharbeit", t: "Selma Mujanović" }, wed: { s: "Nacharbeit", t: "Selma Mujanović" }, thu: { s: "Nacharbeit", t: "Selma Mujanović" }, fri: { s: "Nacharbeit", t: "Selma Mujanović" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '2': [
+        { time: "8:00-8:45", mon: { s: "Deutsch", t: "Amra Kurešepi" }, tue: { s: "Mathe", t: "Melisa Babić" }, wed: { s: "Deutsch", t: "Amra Kurešepi" }, thu: { s: "Mathe", t: "Melisa Babić" }, fri: { s: "Deutsch", t: "Amra Kurešepi" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Englisch", t: "Nejra Ljubunčić" }, tue: { s: "Englisch", t: "Nejra Ljubunčić" }, wed: { s: "Englisch", t: "Nejra Ljubunčić" }, thu: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, fri: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" } },
+        { time: "9:55-10:40", mon: { s: "Ethik", t: "Damir Anđelić" }, tue: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, wed: { s: "Mathe", t: "Melisa Babić" }, thu: { s: "Englisch", t: "Nejra Ljubunčić" }, fri: { s: "Mathe", t: "Melisa Babić" } },
+        { time: "10:45-11:30", mon: { s: "Mathe", t: "Melisa Babić" }, tue: { s: "Deutsch", t: "Amra Kurešepi" }, wed: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, thu: { s: "Deutsch", t: "Amra Kurešepi" }, fri: { s: "Umweltkunde", t: "Hena Mušanović" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Sachkunde", t: "Selma Mujanović" }, tue: { s: "Kunst", t: "Semra Isanović" }, wed: { s: "Umweltkunde", t: "Hena Mušanović" }, thu: { s: "Sport", t: "Anes Memić" }, fri: { s: "Sachkunde", t: "Selma Mujanović" } },
+        { time: "13:05-13:50", mon: { s: "Nacharbeit", t: "Semra Isanović" }, tue: { s: "Kunst", t: "Semra Isanović" }, wed: { s: "Musik", t: "Aras Samardžija" }, thu: { s: "Sport", t: "Anes Memić" }, fri: { s: "Nacharbeit", t: "Semra Isanović" } },
+        { time: "13:55-14:40", mon: { s: "Nacharbeit", t: "Semra Isanović" }, tue: { s: "Nacharbeit", t: "Semra Isanović" }, wed: { s: "Nacharbeit", t: "Semra Isanović" }, thu: { s: "Nacharbeit", t: "Semra Isanović" }, fri: { s: "Nacharbeit", t: "Semra Isanović" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '3': [
+        { time: "8:00-8:45", mon: { s: "Mathe", t: "Melisa Babić" }, tue: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, wed: { s: "Englisch", t: "Nejra Ljubunčić" }, thu: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, fri: { s: "Englisch", t: "Nejra Ljubunčić" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Ethik", t: "Damir Anđelić" }, tue: { s: "Deutsch", t: "Amra Kurešepi" }, wed: { s: "Mathe", t: "Melisa Babić" }, thu: { s: "Deutsch", t: "Amra Kurešepi" }, fri: { s: "Mathe", t: "Melisa Babić" } },
+        { time: "9:55-10:40", mon: { s: "Englisch", t: "Nejra Ljubunčić" }, tue: { s: "Mathe", t: "Melisa Babić" }, wed: { s: "Deutsch", t: "Amra Kurešepi" }, thu: { s: "Mathe", t: "Melisa Babić" }, fri: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" } },
+        { time: "10:45-11:30", mon: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, tue: { s: "Englisch", t: "Nejra Ljubunčić" }, wed: { s: "Umweltkunde", t: "Hena Mušanović" }, thu: { s: "Englisch", t: "Nejra Ljubunčić" }, fri: { s: "Deutsch", t: "Amra Kurešepi" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Deutsch", t: "Amra Kurešepi" }, tue: { s: "Sport", t: "Anes Memić" }, wed: { s: "Musik", t: "Aras Samardžija" }, thu: { s: "Umweltkunde", t: "Hena Mušanović" }, fri: { s: "Kunst", t: "Semra Isanović" } },
+        { time: "13:05-13:50", mon: { s: "Sachkunde", t: "Selma Mujanović" }, tue: { s: "Sport", t: "Anes Memić" }, wed: { s: "Nacharbeit", t: "Hena Mušanović" }, thu: { s: "Sachkunde", t: "Selma Mujanović" }, fri: { s: "Kunst", t: "Semra Isanović" } },
+        { time: "13:55-14:40", mon: { s: "Nacharbeit", t: "Hena Mušanović" }, tue: { s: "Nacharbeit", t: "Hena Mušanović" }, wed: { s: "Nacharbeit", t: "Hena Mušanović" }, thu: { s: "Nacharbeit", t: "Hena Mušanović" }, fri: { s: "Nacharbeit", t: "Hena Mušanović" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '4': [
+        { time: "8:00-8:45", mon: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, tue: { s: "Englisch", t: "Nejra Ljubunčić" }, wed: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, thu: { s: "Englisch", t: "Nejra Ljubunčić" }, fri: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Deutsch", t: "Amra Kurešepi" }, tue: { s: "Mathe", t: "Melisa Babić" }, wed: { s: "Deutsch", t: "Amra Kurešepi" }, thu: { s: "Mathe", t: "Melisa Babić" }, fri: { s: "Deutsch", t: "Amra Kurešepi" } },
+        { time: "9:55-10:40", mon: { s: "Mathe", t: "Melisa Babić" }, tue: { s: "Deutsch", t: "Amra Kurešepi" }, wed: { s: "Englisch", t: "Nejra Ljubunčić" }, thu: { s: "Deutsch", t: "Amra Kurešepi" }, fri: { s: "Englisch", t: "Nejra Ljubunčić" } },
+        { time: "10:45-11:30", mon: { s: "Sachkunde", t: "Selma Mujanović" }, tue: { s: "Musik", t: "Aras Samardžija" }, wed: { s: "Mathe", t: "Melisa Babić" }, thu: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, fri: { s: "Mathe", t: "Melisa Babić" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Englisch", t: "Nejra Ljubunčić" }, tue: { s: "Sport", t: "Anes Memić" }, wed: { s: "Sachkunde", t: "Selma Mujanović" }, thu: { s: "Kunst", t: "Semra Isanović" }, fri: { s: "Umweltkunde", t: "Hena Mušanović" } },
+        { time: "13:05-13:50", mon: { s: "Umweltkunde", t: "Hena Mušanović" }, tue: { s: "Sport", t: "Anes Memić" }, wed: { s: "Ethik", t: "Damir Anđelić" }, thu: { s: "Kunst", t: "Semra Isanović" }, fri: { s: "Nacharbeit", t: "Irma Backes" } },
+        { time: "13:55-14:40", mon: { s: "Nacharbeit", t: "Irma Backes" }, tue: { s: "Nacharbeit", t: "Irma Backes" }, wed: { s: "Nacharbeit", t: "Irma Backes" }, thu: { s: "Nacharbeit", t: "Irma Backes" }, fri: { s: "Nacharbeit", t: "Irma Backes" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '5': [
+        { time: "8:00-8:45", mon: { s: "Mathe", t: "Haris Hamzić" }, tue: { s: "Englisch", t: "Victoria Bartz" }, wed: { s: "Mathe", t: "Haris Hamzić" }, thu: { s: "Englisch", t: "Victoria Bartz" }, fri: { s: "Englisch", t: "Victoria Bartz" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Deutsch", t: "Semra Isanović" }, tue: { s: "Mathe", t: "Haris Hamzić" }, wed: { s: "Englisch", t: "Victoria Bartz" }, thu: { s: "Mathe", t: "Haris Hamzić" }, fri: { s: "Mathe", t: "Haris Hamzić" } },
+        { time: "9:55-10:40", mon: { s: "Gesellschaft", t: "Semra Isanović" }, tue: { s: "Deutsch", t: "Semra Isanović" }, wed: { s: "Deutsch", t: "Semra Isanović" }, thu: { s: "Grundtechniken", t: "Haris Hamzić" }, fri: { s: "Deutsch", t: "Semra Isanović" } },
+        { time: "10:45-11:30", mon: { s: "Informatik", t: "Šemsija Kulenović" }, tue: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, wed: { s: "Lebenskunde", t: "Semra Isanović" }, thu: { s: "Deutsch", t: "Semra Isanović" }, fri: { s: "Ethik", t: "Damir Anđelić" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Englisch", t: "Victoria Bartz" }, tue: { s: "Musik", t: "Aras Samardžija" }, wed: { s: "Sport", t: "Anes Memić" }, thu: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, fri: { s: "Kunst", t: "Vanja Solaković" } },
+        { time: "13:05-13:50", mon: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" }, tue: { s: "Naturkunde", t: "Hena Mušanović" }, wed: { s: "Sport", t: "Anes Memić" }, thu: { s: "Naturkunde", t: "Hena Mušanović" }, fri: { s: "Bosnisch", t: "Amina Ibrahimović Bojić" } },
+        { time: "13:55-14:40", mon: { s: "Nacharbeit", t: "Adna Mešić" }, tue: { s: "Nacharbeit", t: "Adna Mešić" }, wed: { s: "Nacharbeit", t: "Adna Mešić" }, thu: { s: "Nacharbeit", t: "Adna Mešić" }, fri: { s: "Nacharbeit", t: "Adna Mešić" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '6': [
+        { time: "8:00-8:45", mon: { s: "Bosnisch", t: "Amra Franca" }, tue: { s: "Mathe", t: "Šemsija Kulenović" }, wed: { s: "Deutsch", t: "Nikolina Todorović" }, thu: { s: "Mathe", t: "Šemsija Kulenović" }, fri: { s: "Deutsch", t: "Nikolina Todorović" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Mathe", t: "Šemsija Kulenović" }, tue: { s: "Bosnisch", t: "Amra Franca" }, wed: { s: "Mathe", t: "Šemsija Kulenović" }, thu: { s: "Deutsch", t: "Nikolina Todorović" }, fri: { s: "Mathe", t: "Šemsija Kulenović" } },
+        { time: "9:55-10:40", mon: { s: "Informatik", t: "Šemsija Kulenović" }, tue: { s: "Deutsch", t: "Nikolina Todorović" }, wed: { s: "Biologie", t: "Alena Batistuti" }, thu: { s: "Bosnisch", t: "Amra Franca" }, fri: { s: "Englisch", t: "Victoria Bartz" } },
+        { time: "10:45-11:30", mon: { s: "Englisch", t: "Victoria Bartz" }, tue: { s: "Biologie", t: "Alena Batistuti" }, wed: { s: "Bosnisch", t: "Amra Franca" }, thu: { s: "Englisch", t: "Victoria Bartz" }, fri: { s: "Kunst", t: "Vanja Solaković" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Deutsch", t: "Nikolina Todorović" }, tue: { s: "Englisch", t: "Victoria Bartz" }, wed: { s: "Sport", t: "Anes Memić" }, thu: { s: "Französisch", t: "Hana Hodžić" }, fri: { s: "Technik", t: "Haris Hamzić" } },
+        { time: "13:05-13:50", mon: { s: "Geschichte", t: "Dina Gusinac" }, tue: { s: "Französisch", t: "Hana Hodžić" }, wed: { s: "Sport", t: "Anes Memić" }, thu: { s: "Musik", t: "Aras Samardžija" }, fri: { s: "Bosnisch", t: "Amra Franca" } },
+        { time: "13:55-14:40", mon: { s: "Erdkunde", t: "Sunita Kaikčija" }, tue: { s: "Nacharbeit", t: "Hana Hodžić" }, wed: { s: "Ethik", t: "Damir Anđelić" }, thu: { s: "Erdkunde", t: "Sunita Kaikčija" }, fri: { s: "Nacharbeit", t: "Hana Hodžić" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '7': [
+        { time: "8:00-8:45", mon: { s: "Mathe", t: "Šemsija Kulenović" }, tue: { s: "Deutsch", t: "Nikolina Todorović" }, wed: { s: "Mathe", t: "Šemsija Kulenović" }, thu: { s: "Deutsch", t: "Nikolina Todorović" }, fri: { s: "Mathe", t: "Šemsija Kulenović" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Bosnisch", t: "Amra Franca" }, tue: { s: "Mathe", t: "Šemsija Kulenović" }, wed: { s: "Deutsch", t: "Nikolina Todorović" }, thu: { s: "Mathe", t: "Šemsija Kulenović" }, fri: { s: "Englisch", t: "Victoria Bartz" } },
+        { time: "9:55-10:40", mon: { s: "Deutsch", t: "Nikolina Todorović" }, tue: { s: "Englisch", t: "Victoria Bartz" }, wed: { s: "Englisch", t: "Victoria Bartz" }, thu: { s: "Informatik", t: "Šemsija Kulenović" }, fri: { s: "Kunst", t: "Vanja Solaković" } },
+        { time: "10:45-11:30", mon: { s: "Ethik", t: "Damir Anđelić" }, tue: { s: "Bosnisch", t: "Amra Franca" }, wed: { s: "Biologie", t: "Alena Batistuti" }, thu: { s: "Französisch", t: "Hana Hodžić" }, fri: { s: "Deutsch", t: "Nikolina Todorović" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Sport", t: "Anes Memić" }, tue: { s: "Biologie", t: "Alena Batistuti" }, wed: { s: "Bosnisch", t: "Amra Franca" }, thu: { s: "Bosnisch", t: "Amra Franca" }, fri: { s: "Französisch", t: "Hana Hodžić" } },
+        { time: "13:05-13:50", mon: { s: "Sport", t: "Anes Memić" }, tue: { s: "Geschichte", t: "Dina Gusinac" }, wed: { s: "Erdkunde", t: "Sunita Kaikčija" }, thu: { s: "Englisch", t: "Victoria Bartz" }, fri: { s: "Technik", t: "Haris Hamzić" } },
+        { time: "13:55-14:40", mon: { s: "Physik", t: "Adela Subašić Kopić" }, tue: { s: "Nacharbeit", t: "Damir Anđelić" }, wed: { s: "Musik", t: "Aras Samardžija" }, thu: { s: "Nacharbeit", t: "Damir Anđelić" }, fri: { s: "Erdkunde", t: "Sunita Kaikčija" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '8': [
+        { time: "8:00-8:45", mon: { s: "Deutsch", t: "Nikolina Todorović" }, tue: { s: "Mathematik", t: "Haris Hamzić" }, wed: { s: "Englisch", t: "Victoria Bartz" }, thu: { s: "Mathematik", t: "Haris Hamzić" }, fri: { s: "Kunst", t: "Vanja Solaković" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Englisch", t: "Victoria Bartz" }, tue: { s: "Deutsch", t: "Nikolina Todorović" }, wed: { s: "Bosnisch", t: "Amra Franca" }, thu: { s: "Französisch", t: "Hana Hodžić" }, fri: { s: "Französisch", t: "Hana Hodžić" } },
+        { time: "9:55-10:40", mon: { s: "Mathematik", t: "Haris Hamzić" }, tue: { s: "Bosnisch", t: "Amra Franca" }, wed: { s: "Mathematik", t: "Haris Hamzić" }, thu: { s: "Englisch", t: "Victoria Bartz" }, fri: { s: "Technik", t: "Haris Hamzić" } },
+        { time: "10:45-11:30", mon: { s: "Physik", t: "Adela Subašić Kopić" }, tue: { s: "Englisch", t: "Victoria Bartz" }, wed: { s: "Deutsch", t: "Nikolina Todorović" }, thu: { s: "Chemie", t: "Melisa Tvrtković" }, fri: { s: "Informatik", t: "Šemsija Kulenović" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Sport", t: "Anes Memić" }, tue: { s: "Ethik", t: "Damir Anđelić" }, wed: { s: "Biologie", t: "Alena Batistuti" }, thu: { s: "Deutsch", t: "Nikolina Todorović" }, fri: { s: "Deutsch", t: "Nikolina Todorović" } },
+        { time: "13:05-13:50", mon: { s: "Sport", t: "Anes Memić" }, tue: { s: "Chemie", t: "Melisa Tvrtković" }, wed: { s: "Physik", t: "Adela Subašić Kopić" }, thu: { s: "Bosnisch", t: "Amra Franca" }, fri: { s: "Erdkunde", t: "Sunita Kaikčija" } },
+        { time: "13:55-14:40", mon: { s: "Geschichte", t: "Dina Gusinac" }, tue: { s: "Geschichte", t: "Dina Gusinac" }, wed: { s: "Erdkunde", t: "Sunita Kaikčija" }, thu: { s: "Musik", t: "Aras Samardžija" }, fri: { s: "Bosnisch", t: "Amra Franca" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ],
+    '9': [
+        { time: "8:00-8:45", mon: { s: "Französisch", t: "Hana Hodžić" }, tue: { s: "Bosnisch", t: "Amra Franca" }, wed: { s: "Musik", t: "Aras Samardžija" }, thu: { s: "Ethik", t: "Damir Anđelić" }, fri: { s: "Mathematik", t: "Haris Hamzić" } },
+        { time: "8:45-9:05", isBreak: true, content: "Frühstück" },
+        { time: "9:05-9:50", mon: { s: "Mathematik", t: "Haris Hamzić" }, tue: { s: "Englisch", t: "Victoria Bartz" }, wed: { s: "Mathematik", t: "Haris Hamzić" }, thu: { s: "Englisch", t: "Victoria Bartz" }, fri: { s: "Deutsch", t: "Nikolina Todorović" } },
+        { time: "9:55-10:40", mon: { s: "Geschichte", t: "Dina Gusinac" }, tue: { s: "Mathematik", t: "Haris Hamzić" }, wed: { s: "Deutsch", t: "Nikolina Todorović" }, thu: { s: "Französisch", t: "Hana Hodžić" }, fri: { s: "Informatik", t: "Šemsija Kulenović" } },
+        { time: "10:45-11:30", mon: { s: "Deutsch", t: "Nikolina Todorović" }, tue: { s: "Deutsch", t: "Nikolina Todorović" }, wed: { s: "Englisch", t: "Victoria Bartz" }, thu: { s: "Deutsch", t: "Nikolina Todorović" }, fri: { s: "Technik", t: "Haris Hamzić" } },
+        { time: "11:30-12:15", isBreak: true, content: "Mittagessen" },
+        { time: "12:15-13:00", mon: { s: "Erdkunde", t: "Sunita Kaikčija" }, tue: { s: "Geschichte", t: "Dina Gusinac" }, wed: { s: "Physik", t: "Adela Subašić Kopić" }, thu: { s: "Chemie", t: "Melisa Tvrtković" }, fri: { s: "Sport", t: "Anes Memić" } },
+        { time: "13:05-13:50", mon: { s: "Physik", t: "Adela Subašić Kopić" }, tue: { s: "Biologie", t: "Alena Batistuti" }, wed: { s: "Biologie", t: "Alena Batistuti" }, thu: { s: "Erdkunde", t: "Sunita Kaikčija" }, fri: { s: "Sport", t: "Anes Memić" } },
+        { time: "13:55-14:40", mon: { s: "Englisch", t: "Victoria Bartz" }, tue: { s: "Chemie", t: "Melisa Tvrtković" }, wed: { s: "Bosnisch", t: "Amra Franca" }, thu: { s: "Bosnisch", t: "Amra Franca" }, fri: { s: "Kunst", t: "Vanja Solaković" } },
+        { time: "14:40-15:15", isBreak: true, content: "Snack" },
+        { time: "15:15-17:00", isBreak: true, content: "Nachmittagsprogramm" }
+    ]
+};
+
+const subjectColors = { "Mathe": "subject-mathe", "Mathematik": "subject-mathe", "Deutsch": "subject-deutsch", "Englisch": "subject-englisch", "Bosnisch": "subject-bosnisch", "Sachkunde": "subject-sachkunde", "Gesellschaft": "subject-gesellschaft", "Lebenskunde": "subject-lebenskunde", "Natur": "subject-natur", "Naturkunde": "subject-natur", "Umweltkunde": "subject-umweltkunde", "Kunst": "subject-kunst", "Musik": "subject-musik", "Sport": "subject-sport", "Ethik": "subject-ethik", "Nacharbeit": "subject-nacharbeit", "Informatik": "subject-informatik", "Geografie": "subject-geografie", "Erdkunde": "subject-erdkunde", "Biologie": "subject-biologie", "Geschichte": "subject-geschichte", "Physik": "subject-physik", "Chemie": "subject-chemie", "Französisch": "subject-französisch", "Grundtechniken": "subject-grundtechniken", "Technik": "subject-technik" };
+
+const translations = {
+    bs: {
+        pageTitle: "IDSS Školski Portal",
+        print: "Štampaj",
+        download: "Preuzmi",
+        marqueeText: "Predmet: Prvi školski izlet u godini - 2. oktobar 2025. Poštovani roditelji i staratelji, sa zadovoljstvom vas obavještavamo da je prvi školski izlet za učenike planiran za četvrtak, 2. oktobra 2025. godine, ako vremenski uslovi to dozvole. Izlet će biti edukativno-sportski dan na lokaciji Babin dol na Bjelašnici. Koristit ćemo objekte Olimpijskog sportsko-rekreativnog centra '84, koji uključuju tubing stazu, skijaške staze, te fudbalske i košarkaške terene. Ručak će biti osiguran u restoranu Mechava. Prevoz će obavljati provjerena i pouzdana kompanija Travel Trans d.o.o., s kojom smo i ranije sarađivali. Cijena izleta je 37 KM po učeniku. Molimo vas da uplatu izvršite u kancelariji sekretara na ulazu u školu najkasnije do ponedjeljka, 30. septembra 2025. godine. Ovaj izlet je namijenjen svim učenicima od 1. do 9. razreda, kao i djeci iz predškolske grupe IDSS-a. Šta ponijeti: Rezervnu odjeću, kremu za sunčanje, bocu s vodom, neklizajuće sportske patike, šešir ili kačket za zaštitu od sunca. Raspored: Polazak iz škole: 9:00, procijenjeni povratak: 16:30. Roditelji su dužni dočekati djecu ispred škole. S poštovanjem, Uprava škole.",
+        scheduleTitle: "Raspored Časova",
+        selectGrade: "Odaberite razred:",
+        infoLinks: "Informativni Linkovi",
+        consultationsTitle: "Konsultacije",
+        consultationsDesc: "Raspored konsultacija za nastavnike",
+        tripsTitle: "Plan izleta i posjeta",
+        tripsDesc: "Uskoro dostupno",
+        testsTitle: "Pismene provjere",
+        testsDesc: "Uskoro dostupno",
+        documentsTitle: "Dokumenti za roditelje",
+        documentsDesc: "Formulari, uputstva i drugi dokumenti",
+        calendarTitle: "Školski kalendar",
+        calendarDesc: "Kalendar za 2025/2026",
+        rulesBsTitle: "Školski pravilnik (BS)",
+        rulesBsDesc: "Pravilnik na bosanskom jeziku",
+        rulesEnDeTitle: "Školski pravilnik (EN/DE)",
+        rulesEnDeDesc: "Pravilnik na engleskom i njemačkom",
+        galleryTitle: "Galerija",
+        galleryDesc: "Fotografije sa školskih događaja",
+        contactTitle: "Kontakt",
+        viewOnMap: "Pogledaj na mapi",
+        rightsReserved: "Sva prava pridržana.",
+        modalSubjects: "Predmeti",
+        modalContact: "Kontakt",
+        modalClose: "Zatvori",
+        dayNames: ["Ponedjeljak", "Utorak", "Srijeda", "Četvrtak", "Petak"],
+        scheduleForGrade: "Raspored za",
+        grade: "razred",
+        breakBreakfast: "Doručak",
+        breakLunch: "Ručak",
+        breakSnack: "Užina",
+        breakAfternoonProgram: "Popodnevni program"
+    },
+    en: {
+        pageTitle: "IDSS School Portal",
+        print: "Print",
+        download: "Download",
+        marqueeText: "Subject: First School Trip of the Year - October 2, 2025. Dear Parents and Guardians, We are pleased to inform you that the first student school trip of the year is scheduled for Thursday, October 2, 2025, weather permitting. The trip will be an educational and sports-focused day at the Babin dol location on Bjelašnica. We will use the facilities of the '84 Olympic sports and recreational areas, which include the tubing track, ski slopes, and football and basketball courts. Lunch will be provided at the Mechava restaurant. Transportation will be handled by Travel Trans d.o.o., a verified and trusted company we have worked with before. The cost of the trip is 37 KM per student. Please submit the payment to the school secretary's office at the school entrance no later than Monday, September 30, 2025. This trip is for all students from grades 1 through 9, as well as children from the IDSS preschool group. What to bring: A change of clothes, Sunscreen, A water bottle, Non-slip athletic shoes, A hat or cap for sun protection. Schedule: Departure from school: 9:00 AM, Estimated return: 4:30 PM. Parents must meet children at school for pick-up. Sincerely, The School Administration.",
+        scheduleTitle: "Class Schedule",
+        selectGrade: "Select grade:",
+        infoLinks: "Information Links",
+        consultationsTitle: "Consultations",
+        consultationsDesc: "Teacher consultation schedule",
+        tripsTitle: "Trips and Visits Plan",
+        tripsDesc: "Coming soon",
+        testsTitle: "Written Exams",
+        testsDesc: "Coming soon",
+        documentsTitle: "Documents for Parents",
+        documentsDesc: "Forms, instructions, and other documents",
+        calendarTitle: "School Calendar",
+        calendarDesc: "Calendar for 2025/2026",
+        rulesBsTitle: "School Rulebook (BS)",
+        rulesBsDesc: "Rulebook in Bosnian",
+        rulesEnDeTitle: "School Rulebook (EN/DE)",
+        rulesEnDeDesc: "Rulebook in English and German",
+        galleryTitle: "Gallery",
+        galleryDesc: "Photos from school events",
+        contactTitle: "Contact",
+        viewOnMap: "View on map",
+        rightsReserved: "All rights reserved.",
+        modalSubjects: "Subjects",
+        modalContact: "Contact",
+        modalClose: "Close",
+        dayNames: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        scheduleForGrade: "Schedule for",
+        grade: "Grade",
+        breakBreakfast: "Breakfast",
+        breakLunch: "Lunch",
+        breakSnack: "Snack",
+        breakAfternoonProgram: "Afternoon Program"
+    },
+    de: {
+        pageTitle: "IDSS Schulportal",
+        print: "Drucken",
+        download: "Herunterladen",
+        marqueeText: "Betreff: Erster Schulausflug des Jahres - 2. Oktober 2025. Sehr geehrte Eltern und Erziehungsberechtigte, wir freuen uns, Ihnen mitteilen zu können, dass der erste Schulausflug des Jahres für Donnerstag, den 2. Oktober 2025, geplant ist, sofern das Wetter es zulässt. Der Ausflug wird ein bildungs- und sportorientierter Tag am Standort Babin dol auf der Bjelašnica sein. Wir werden die Einrichtungen der Olympischen Sport- und Erholungsgebiete '84 nutzen, zu denen die Tubing-Bahn, Skipisten sowie Fußball- und Basketballplätze gehören. Das Mittagessen wird im Restaurant Mechava serviert. Der Transport wird von der Firma Travel Trans d.o.o. durchgeführt, einem bewährten und vertrauenswürdigen Unternehmen, mit dem wir bereits zusammengearbeitet haben. Die Kosten für den Ausflug betragen 37 KM pro Schüler. Bitte entrichten Sie die Zahlung bis spätestens Montag, den 30. September 2025, im Sekretariat am Schuleingang. Dieser Ausflug ist für alle Schüler der Klassen 1 bis 9 sowie für Kinder der IDSS-Vorschulgruppe bestimmt. Was mitzubringen ist: Wechselkleidung, Sonnencreme, eine Wasserflasche, rutschfeste Sportschuhe, ein Hut oder eine Kappe als Sonnenschutz. Zeitplan: Abfahrt von der Schule: 9:00 Uhr, voraussichtliche Rückkehr: 16:30 Uhr. Die Eltern müssen die Kinder an der Schule abholen. Mit freundlichen Grüßen, Die Schulleitung.",
+        scheduleTitle: "Stundenplan",
+        selectGrade: "Klasse wählen:",
+        infoLinks: "Informationslinks",
+        consultationsTitle: "Sprechstunden",
+        consultationsDesc: "Sprechstundenplan der Lehrer",
+        tripsTitle: "Ausflugs- und Besuchsplan",
+        tripsDesc: "Bald verfügbar",
+        testsTitle: "Schriftliche Prüfungen",
+        testsDesc: "Bald verfügbar",
+        documentsTitle: "Dokumente für Eltern",
+        documentsDesc: "Formulare, Anleitungen und andere Dokumente",
+        calendarTitle: "Schulkalender",
+        calendarDesc: "Kalender für 2025/2026",
+        rulesBsTitle: "Schulordnung (BS)",
+        rulesBsDesc: "Schulordnung auf Bosnisch",
+        rulesEnDeTitle: "Schulordnung (EN/DE)",
+        rulesEnDeDesc: "Schulordnung auf Englisch und Deutsch",
+        galleryTitle: "Galerie",
+        galleryDesc: "Fotos von Schulveranstaltungen",
+        contactTitle: "Kontakt",
+        viewOnMap: "Auf der Karte ansehen",
+        rightsReserved: "Alle Rechte vorbehalten.",
+        modalSubjects: "Fächer",
+        modalContact: "Kontakt",
+        modalClose: "Schließen",
+        dayNames: ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"],
+        scheduleForGrade: "Stundenplan für die",
+        grade: "Klasse",
+        breakBreakfast: "Frühstück",
+        breakLunch: "Mittagessen",
+        breakSnack: "Snack",
+        breakAfternoonProgram: "Nachmittagsprogramm"
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const gradeSelector = document.getElementById('gradeSelector');
+    const languageSelector = document.getElementById('languageSelector');
+    const modal = document.getElementById('teacher-modal');
+    const overlay = document.getElementById('modal-overlay');
+    const closeModalBtns = [document.getElementById('close-modal-btn'), document.getElementById('close-modal-btn-2')];
+
+    function setLanguage(lang) {
+        document.documentElement.lang = lang;
+        const translation = translations[lang];
+        document.querySelectorAll('[data-translate-key]').forEach(el => {
+            const key = el.dataset.translateKey;
+            if (translation[key]) {
+                el.innerText = translation[key];
+            }
+        });
+        document.title = translation.pageTitle;
+        renderSchedule(gradeSelector.value, lang);
+    }
+
+    function renderSchedule(grade, lang) {
+        const schedule = timetableData[grade];
+        const container = document.getElementById('schedule-container');
+        const dayNames = translations[lang].dayNames;
+        const schedulePrintHeader = document.getElementById('schedule-print-header');
+
+        const breakTranslations = {
+            "Frühstück": translations[lang].breakBreakfast,
+            "Mittagessen": translations[lang].breakLunch,
+            "Snack": translations[lang].breakSnack,
+            "Nachmittagsprogramm": translations[lang].breakAfternoonProgram,
+        };
+        
+        schedulePrintHeader.textContent = `${translations[lang].scheduleForGrade} ${grade}. ${translations[lang].grade}`;
+        
+        let gridHtml = `<div class="schedule-grid" style="grid-template-rows: 40px repeat(${schedule.length}, auto);">`;
+        
+        // Header row
+        gridHtml += `<div class="schedule-header"></div>`;
+        dayNames.forEach(day => {
+            gridHtml += `<div class="schedule-header">${day}</div>`;
+        });
+
+        // Schedule rows
+        schedule.forEach((row) => {
+            gridHtml += `<div class="schedule-time">${row.time}</div>`;
+            
+            if (row.isBreak) {
+                const content = breakTranslations[row.content] || row.content;
+                gridHtml += `<div class="schedule-break">${content}</div>`;
+            } else {
+                 ['mon', 'tue', 'wed', 'thu', 'fri'].forEach(day => {
+                    const entry = row[day];
+                    if(entry && entry.s) {
+                        const colorClass = subjectColors[entry.s] || 'bg-gray-400';
+                        gridHtml += `
+                            <div class="schedule-card ${colorClass}" data-teacher="${entry.t}" role="button" tabindex="0">
+                                <div class="font-bold">${entry.s}</div>
+                                <div class="text-xs">${entry.t}</div>
+                            </div>`;
+                    } else {
+                        gridHtml += `<div></div>`;
+                    }
+                });
+            }
+        });
+
+        gridHtml += '</div>';
+        container.innerHTML = gridHtml;
+
+        // Add event listeners after rendering HTML
+        container.querySelectorAll('.schedule-card').forEach(card => {
+            card.addEventListener('click', () => {
+                showModal(card.dataset.teacher);
+            });
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    showModal(card.dataset.teacher);
+                }
+            });
+        });
+    }
+
+    function showModal(teacherFullName) {
+        // Correcting potential mismatches from schedule data
+        if (teacherFullName === 'Amina IB') teacherFullName = 'Amina Ibrahimović Bojić';
+        if (teacherFullName === 'Adela SK') teacherFullName = 'Adela Subašić Kopić';
+
+        const teacher = teacherData.find(t => t.name === teacherFullName);
+        if (teacher) {
+            document.getElementById('modal-teacher-name').innerText = teacher.name;
+            const detailsContainer = document.getElementById('modal-teacher-details');
+            const subjectsContainer = document.getElementById('modal-teacher-subjects');
+
+            let detailsHtml = '';
+            if (teacher.email) {
+                detailsHtml += `<p><i class="fas fa-envelope w-5 text-[var(--primary-blue)]"></i> <a href="mailto:${teacher.email}" class="hover:underline">${teacher.email}</a></p>`;
+            }
+            detailsHtml += `<p><i class="fas fa-phone-alt w-5 text-[var(--primary-blue)]"></i> +387 33 560 520</p>`;
+            detailsContainer.innerHTML = detailsHtml;
+
+            subjectsContainer.innerHTML = `<ul>` + teacher.subjects.map(s => `<li class="ml-2">- ${s}</li>`).join('') + `</ul>`;
+            modal.classList.add('active');
+            overlay.classList.add('active');
+        } else {
+            console.error(`Teacher not found: ${teacherFullName}`);
+        }
+    }
+    
+    function closeModal() {
+        modal.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+    
+    // Event Listeners
+    gradeSelector.addEventListener('change', (e) => renderSchedule(e.target.value, languageSelector.value));
+    languageSelector.addEventListener('change', (e) => setLanguage(e.target.value));
+    closeModalBtns.forEach(btn => btn.addEventListener('click', closeModal));
+    overlay.addEventListener('click', closeModal);
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+        window.print();
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        const { jsPDF } = window.jspdf;
+        const scheduleContainer = document.getElementById('schedule-to-print');
+        const currentGrade = gradeSelector.value;
+        
+        html2canvas(scheduleContainer, { scale: 2 }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('landscape', 'pt', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = canvasWidth / canvasHeight;
+            let newWidth = pdfWidth - 40;
+            let newHeight = newWidth / ratio;
+            if(newHeight > pdfHeight - 40) {
+                newHeight = pdfHeight - 40;
+                newWidth = newHeight * ratio;
+            }
+            const x = (pdfWidth - newWidth) / 2;
+            const y = (pdfHeight - newHeight) / 2;
+            pdf.addImage(imgData, 'PNG', x, y, newWidth, newHeight);
+            pdf.save(`IDSS-schedule-grade-${currentGrade}.pdf`);
+        });
+    });
+
+    // Initial setup
+    setLanguage('bs');
+});
+</script>
+
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
