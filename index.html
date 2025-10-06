@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IDSS Školski portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #f7fafc;
+      --primary-blue: #08ABE6;
+      --primary-yellow: #FFCB29;
+      --text-dark: #2d3748;
+      --marquee-height: 48px; 
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Roboto', sans-serif;
+      color: var(--text-dark);
+    }
+    .top-fixed-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background-color: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .btn {
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-blue {
+      background-color: var(--primary-blue);
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #0798ce;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(8, 171, 230, 0.3);
+    }
+    .btn-yellow {
+      background-color: var(--primary-yellow);
+      color: var(--text-dark);
+    }
+    .btn-yellow:hover {
+      background-color: #f0be26;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(255, 203, 41, 0.4);
+    }
+    .btn-green {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .btn-green:hover {
+      background-color: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);
+    }
+    .logo-glow {
+        filter: drop-shadow(0 0 8px rgba(8, 171, 230, 0.5));
+    }
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      background-color: #333;
+      color: white;
+      display: flex; 
+      align-items: center; 
+    }
+    .marquee-content {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: marquee-scroll 90s linear infinite;
+      font-size: 1.125rem;
+    }
+    @keyframes marquee-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+    .card-link {
+        display: block;
+        background-color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .card-link:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        display: none;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .modal {
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        display: none;
+        z-index: 101;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .modal.active, .modal-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+    .modal.active {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: 100px repeat(5, 1fr);
+        gap: 8px;
+    }
+    .schedule-header, .schedule-time, .schedule-card, .schedule-break {
+        padding: 10px;
+        text-align: center;
+        border-radius: 6px;
+    }
+    .schedule-header {
+        background-color: #e9ecef;
+        font-weight: 700;
+    }
+    .schedule-time {
+        background-color: #f8f9fa;
+        font-weight: 500;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .schedule-card {
+        color: white;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 5px;
+    }
+    .schedule-card:hover, .schedule-card:focus {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 10;
+        outline: 2px solid var(--primary-blue);
+    }
+    .subject-mathe, .subject-mathematik { background-color: #ffc107; color: #333; }
+    .subject-deutsch { background-color: #dc3545; }
+    .subject-englisch { background-color: #8e44ad; } 
+    .subject-bosnisch, .subject-bhs { background-color: #fd7e14; }
+    .subject-sachkunde { background-color: #9acd32; color: #333; }
+    .subject-gesellschaft { background-color: #27ae60; } 
+    .subject-lebenskunde { background-color: #2ecc71; } 
+    .subject-natur, .subject-naturkunde { background-color: #1abc9c; } 
+    .subject-umweltkunde { background-color: #28a745; }
+    .subject-kunst { background-color: #3498db; } 
+    .subject-musik { background-color: #f06292; } 
+    .subject-sport { background-color: #0dcaf0; color: #333;}
+    .subject-ethik { background-color: #16a085; } 
+    .subject-nacharbeit { background-color: #f5deb3; color: #333; }
+    .subject-informatik { background-color: #6c757d; }
+    .subject-geografie, .subject-erdkunde { background-color: #795548; }
+    .subject-biologie { background-color: #20c997; }
+    .subject-geschichte { background-color: #c0392b; } 
+    .subject-physik { background-color: #008b8b; }
+    .subject-chemie { background-color: #d35400; } 
+    .subject-franzsisch { background-color: #3f51b5; }
+    .subject-grundtechniken, .subject-technik { background-color: #4682b4; }
+    .schedule-break {
+        background-color: #e0e0e0;
+        grid-column: 2 / -1;
+        font-weight: 500;
+        color: #555;
+    }
+    .trip-card {
+        color: white;
+        border-radius: 12px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        min-height: 130px;
+    }
+    .trip-card:hover {
+        transform: translateY(-5px) scale(1.03);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .skeleton {
+        background-color: #e2e8f0;
+        border-radius: 0.25rem;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .calendar-grid {
+        border-top: 1px solid #e2e8f0;
+        border-left: 1px solid #e2e8f0;
+    }
+    .calendar-grid .day-cell {
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 4px;
+        min-height: 110px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        background-color: #fff;
+        transition: background-color 0.2s;
+    }
+    .calendar-grid .day-cell.today .day-number {
+        background-color: var(--primary-blue);
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .calendar-grid .day-cell.other-month {
+        background-color: #f8f9fa;
+        color: #adb5bd;
+    }
+    .calendar-grid .day-number {
+        font-weight: 500;
+        margin-bottom: 4px;
+        font-size: 0.875rem;
+        padding: 2px;
+    }
+    .calendar-grid .events {
+        width: 100%;
+        font-size: 0.75rem;
+        line-height: 1.3;
+        overflow-y: auto;
+        max-height: 80px;
+    }
+    .calendar-grid .event {
+        padding: 2px 4px;
+        border-radius: 4px;
+        margin-bottom: 2px;
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #333;
+    }
+
+    /* From Uiverse.io by marcelodolza */
+    .button {
+      --primary: var(--primary-blue);
+      --neutral-1: #f7f8f7;
+      --neutral-2: #e7e7e7;
+      --radius: 14px;
+
+      cursor: pointer;
+      border-radius: var(--radius);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+      border: none;
+      box-shadow: 0 0.5px 0.5px 1px rgba(255, 255, 255, 0.2),
+        0 10px 20px rgba(0, 0, 0, 0.2), 0 4px 5px 0px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.3s ease;
+      padding: 1rem 1.25rem;
+      height: 60px;
+      font-family: "Galano Grotesque", Poppins, Montserrat, sans-serif;
+      font-style: normal;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--text-dark);
+    }
+    .button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 1px 2px rgba(255, 255, 255, 0.3),
+        0 15px 30px rgba(0, 0, 0, 0.3), 0 10px 3px -3px rgba(0, 0, 0, 0.04);
+    }
+    .button:active, .button:focus {
+      transform: scale(1);
+      box-shadow: 0 0 1px 2px rgba(255, 255, 255, 0.3),
+        0 10px 3px -3px rgba(0, 0, 0, 0.2);
+    }
+    .button:after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      border: 2.5px solid transparent;
+      background: linear-gradient(var(--neutral-1), var(--neutral-2)) padding-box,
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.45))
+          border-box;
+      z-index: 0;
+      transition: all 0.4s ease;
+    }
+    .button:hover::after {
+      transform: scale(1.05, 1.1);
+      box-shadow: inset 0 -1px 3px 0 rgba(255, 255, 255, 1);
+    }
+    .button::before {
+      content: "";
+      inset: 7px 6px 6px 6px;
+      position: absolute;
+      background: linear-gradient(to top, var(--neutral-1), var(--neutral-2));
+      border-radius: 30px;
+      filter: blur(0.5px);
+      z-index: 2;
+    }
+    .state .icon {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      margin: auto;
+      transform: scale(1.25);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .state .icon svg, .state .icon i, .state .icon img {
+      overflow: visible;
+    }
+
+    /* Outline */
+    .outline {
+      position: absolute;
+      border-radius: inherit;
+      overflow: hidden;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      inset: -2px -3.5px;
+    }
+    .outline::before {
+      content: "";
+      position: absolute;
+      inset: -100%;
+      background: conic-gradient(
+        from 180deg,
+        transparent 60%,
+        white 80%,
+        transparent 100%
+      );
+      animation: spin 2s linear infinite;
+      animation-play-state: paused;
+    }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    .button:hover .outline {
+      opacity: 1;
+    }
+    .button:hover .outline::before {
+      animation-play-state: running;
+    }
+
+    /* Letters */
+    .state p span {
+      display: inline-block;
+      opacity: 0;
+      animation: slideDown 0.8s ease forwards calc(var(--i) * 0.03s);
+    }
+    .button:hover p span {
+      opacity: 1;
+      animation: wave 0.5s ease forwards calc(var(--i) * 0.02s);
+    }
+    .button:focus p span {
+      opacity: 1;
+      animation: disapear 0.6s ease forwards calc(var(--i) * 0.03s);
+    }
+    @keyframes wave {
+      30% {
+        opacity: 1;
+        transform: translateY(4px) translateX(0) rotate(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-3px) translateX(0) rotate(0);
+        color: var(--primary);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) rotate(0);
+      }
+    }
+    @keyframes slideDown {
+      0% {
+        opacity: 0;
+        transform: translateY(-20px) translateX(5px) rotate(-90deg);
+        color: var(--primary);
+        filter: blur(5px);
+      }
+      30% {
+        opacity: 1;
+        transform: translateY(4px) translateX(0) rotate(0);
+        filter: blur(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-3px) translateX(0) rotate(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) rotate(0);
+      }
+    }
+    @keyframes disapear {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+        transform: translateX(5px) translateY(20px);
+        color: var(--primary);
+        filter: blur(5px);
+      }
+    }
+
+    /* Plane */
+    .state--default .icon svg, .state--default .icon i, .state--default .icon img {
+      animation: land 0.6s ease forwards;
+    }
+    .button:hover .state--default .icon {
+      transform: rotate(45deg) scale(1.25);
+    }
+    .button:focus .state--default svg, .button:focus .state--default i, .button:focus .state--default img {
+      animation: takeOff 0.8s linear forwards;
+    }
+    .button:focus .state--default .icon {
+      transform: rotate(0) scale(1.25);
+    }
+    @keyframes takeOff {
+      0% {
+        opacity: 1;
+      }
+      60% {
+        opacity: 1;
+        transform: translateX(70px) rotate(45deg) scale(2);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(160px) rotate(45deg) scale(0);
+      }
+    }
+    @keyframes land {
+      0% {
+        transform: translateX(-60px) translateY(30px) rotate(-50deg) scale(2);
+        opacity: 0;
+        filter: blur(3px);
+      }
+      100% {
+        transform: translateX(0) translateY(0) rotate(0);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+
+    /* Contrail */
+    .state--default .icon:before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      height: 2px;
+      width: 0;
+      left: -5px;
+      background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.5));
+    }
+    .button:focus .state--default .icon:before {
+      animation: contrail 0.8s linear forwards;
+    }
+    @keyframes contrail {
+      0% {
+        width: 0;
+        opacity: 1;
+      }
+      8% {
+        width: 15px;
+      }
+      60% {
+        opacity: 0.7;
+        width: 80px;
+      }
+      100% {
+        opacity: 0;
+        width: 160px;
+      }
+    }
+
+    /* States */
+    .state {
+      padding-left: 29px;
+      z-index: 2;
+      display: flex;
+      position: relative;
+    }
+    .state--sent {
+      display: none;
+    }
+    .state--sent svg {
+      transform: scale(1.25);
+      margin-right: 8px;
+    }
+    .button:focus .state--default {
+      position: absolute;
+      visibility: hidden;
+    }
+    .button:focus .state--sent {
+      display: flex;
+    }
+    .button:focus .state--sent span {
+      opacity: 0;
+      animation: slideDown 0.8s ease forwards calc(var(--i) * 0.2s);
+    }
+    .button:focus .state--sent .icon svg {
+      opacity: 0;
+      animation: appear 1.2s ease forwards 0.8s;
+    }
+    @keyframes appear {
+      0% {
+        opacity: 0;
+        transform: scale(4) rotate(-40deg);
+        color: var(--primary);
+        filter: blur(4px);
+      }
+      30% {
+        opacity: 1;
+        transform: scale(0.6);
+        filter: blur(1px);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.2);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #schedule-to-print, #schedule-to-print * {
+        visibility: visible;
+      }
+      #schedule-to-print {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 1rem;
+        margin: 0;
+      }
+      body {
+        padding: 0;
+        margin: 0;
+        font-size: 10pt;
+      }
+      main {
+        padding: 0;
+      }
+      #schedule-print-header {
+        display: block !important;
+        font-size: 14pt;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      #schedule-container {
+        overflow: visible !important;
+      }
+      .schedule-grid {
+        gap: 1px;
+      }
+      .schedule-header, .schedule-time, .schedule-card, .schedule-break {
+        padding: 4px;
+        border-radius: 0;
+        font-size: 9pt;
+        break-inside: avoid;
+      }
+      .schedule-card {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        border: 1px solid #ccc;
+        box-shadow: none !important;
+        transform: none !important;
+        min-height: auto;
+      }
+      .schedule-card span {
+        font-size: 8pt;
+      }
+      .schedule-card .font-bold {
+        font-size: 9pt;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-fixed-container">
+    <header class="bg-white/90 shadow-md">
+        <!-- Top Bar -->
+        <div class="container mx-auto px-4 py-2 flex justify-between items-center">
+            <div class="flex-1 flex justify-start">
+                <img src="https://i.imgur.com/ZYxzQpd.png" alt="IDSS Logo" class="h-20 md:h-28 logo-glow">
+            </div>
+            <div class="flex-1 flex justify-center">
+                 <h1 class="text-2xl md:text-4xl font-bold text-gray-800 text-center whitespace-nowrap" data-translate-key="pageTitle">IDSS Školski portal</h1>
+            </div>
+            <div class="flex-1 flex justify-end items-center">
+                <div class="flex items-center space-x-2">
+                    <select id="languageSelector" class="border rounded-md p-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#08ABE6]">
+                        <option value="bs">BS</option>
+                        <option value="en">EN</option>
+                        <option value="de">DE</option>
+                    </select>
+                    <button id="printBtn" title="Štampaj Raspored" class="btn btn-yellow p-2 rounded-lg font-semibold flex items-center">
+                        <i class="fas fa-print text-lg"></i>
+                    </button>
+                    <button id="downloadBtn" title="Preuzmi Raspored (PDF)" class="btn btn-blue p-2 rounded-lg font-semibold flex items-center">
+                        <i class="fas fa-file-pdf text-lg"></i>
+                    </button>
+                    <a id="downloadCalendarLink" href="https://drive.google.com/file/d/1DRaqBEDxQbZGmMtYphlcGXg63Rty83kK/view?usp=drive_link" target="_blank" rel="noopener noreferrer" title="Preuzmi Školski Kalendar (PDF)" class="btn btn-blue p-2 rounded-lg font-semibold flex items-center">
+                        <i class="fas fa-calendar-alt text-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Navigation Bar -->
+        <nav class="container mx-auto px-4 pb-3 hidden md:flex justify-between items-center gap-2">
+            <a href="#schedule-section" class="button">
+                <div class="outline"></div>
+                <div class="state state--default">
+                    <p class="animated-button-text" data-translate-key="navSchedule">Raspored časova</p>
+                    <div class="icon"><img src="https://i.imgur.com/1wXWYjF.png" alt="Raspored časova" class="h-7"></div>
+                </div>
+                <div class="state state--sent">
+                    <p>OK</p>
+                    <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                </div>
+            </a>
+            <a href="#teachers-section" class="button">
+                <div class="outline"></div>
+                <div class="state state--default">
+                    <p class="animated-button-text" data-translate-key="navTeachers">Nastavnici</p>
+                    <div class="icon"><img src="https://i.imgur.com/133iaRv.png" alt="Nastavnici" class="h-7"></div>
+                </div>
+                <div class="state state--sent">
+                    <p>OK</p>
+                    <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                </div>
+            </a>
+            <a href="#trips-section" class="button">
+                <div class="outline"></div>
+                <div class="state state--default">
+                    <p class="animated-button-text" data-translate-key="tripsTitle">Plan izleta i posjeta</p>
+                    <div class="icon"><img src="https://i.imgur.com/kZiGOid.png" alt="Plan izleta i posjeta" class="h-7"></div>
+                </div>
+                <div class="state state--sent">
+                    <p>OK</p>
+                    <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                </div>
+            </a>
+            <a href="#calendar-section" class="button">
+                <div class="outline"></div>
+                <div class="state state--default">
+                    <p class="animated-button-text" data-translate-key="navCalendar">Školski kalendar</p>
+                    <div class="icon"><img src="https://i.imgur.com/kImbB2O.png" alt="Školski kalendar" class="h-7"></div>
+                </div>
+                <div class="state state--sent">
+                    <p>OK</p>
+                    <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                </div>
+            </a>
+            <a href="#links-section" class="button">
+                 <div class="outline"></div>
+                <div class="state state--default">
+                    <p class="animated-button-text" data-translate-key="navInfo">Info</p>
+                    <div class="icon"><img src="https://i.imgur.com/1nazyP1.png" alt="Info" class="h-7"></div>
+                </div>
+                <div class="state state--sent">
+                    <p>OK</p>
+                    <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                </div>
+            </a>
+            <a id="teamsBtn" href="https://www.microsoft.com/en-us/microsoft-teams/log-in" target="_blank" rel="noopener noreferrer" class="button">
+                 <div class="outline"></div>
+                <div class="state state--default">
+                    <p class="animated-button-text" data-translate-key="teamsBtnTitle">Prijavite se na MS Teams</p>
+                    <div class="icon"><img src="https://i.imgur.com/UKYou0J.png" alt="MS Teams Login" class="h-7"></div>
+                </div>
+                <div class="state state--sent">
+                    <p>OK</p>
+                    <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                </div>
+            </a>
+        </nav>
+    </header>
+    
+    <div class="marquee" style="height: var(--marquee-height);">
+      <p class="marquee-content" data-translate-key="marqueeText">
+        Učitavanje obavijesti...
+      </p>
+    </div>
+  </div>
+
+  <main class="container mx-auto p-4 md:p-8">
+    <section id="schedule-section" class="mb-12 pt-4">
+      <div class="bg-white p-6 rounded-xl shadow-lg">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <h2 class="text-3xl font-bold text-gray-800" data-translate-key="scheduleTitle">Raspored časova</h2>
+          <div class="flex items-center space-x-3">
+            <label for="gradeSelector" class="font-semibold" data-translate-key="selectGrade">Odaberite razred:</label>
+            <select id="gradeSelector" class="border rounded-md p-2 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#08ABE6]">
+              <option value="1">1. Razred</option><option value="2">2. Razred</option><option value="3">3. Razred</option><option value="4">4. Razred</option><option value="5">5. Razred</option><option value="6">6. Razred</option><option value="7">7. Razred</option><option value="8">8. Razred</option><option value="9">9. Razred</option>
+            </select>
+          </div>
+        </div>
+        <div id="schedule-to-print">
+            <h3 id="schedule-print-header" class="text-xl font-bold text-center mb-4 text-gray-700 hidden"></h3>
+            <div id="schedule-container" class="overflow-x-auto">
+                <div class="schedule-grid">
+                    <div class="schedule-header"></div><div class="schedule-header skeleton h-6"></div><div class="schedule-header skeleton h-6"></div><div class="schedule-header skeleton h-6"></div><div class="schedule-header skeleton h-6"></div><div class="schedule-header skeleton h-6"></div>
+                    <div class="schedule-time skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div>
+                    <div class="schedule-time skeleton h-6"></div><div class="schedule-break skeleton h-6"></div>
+                    <div class="schedule-time skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div>
+                    <div class="schedule-time skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div><div class="skeleton h-16"></div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="teachers-section" class="mb-12 pt-4">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+          <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <h2 class="text-3xl font-bold text-gray-800" data-translate-key="teachersTitle">Nastavnici</h2>
+            <div class="w-full md:w-1/2 lg:w-1/3 relative">
+              <input type="search" id="teacherSearch" class="w-full border rounded-md p-2 pl-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#08ABE6]" placeholder="Pretraži...">
+              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
+          </div>
+          <div id="teachers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Skeleton Loader -->
+            <div class="h-48 skeleton rounded-lg"></div><div class="h-48 skeleton rounded-lg"></div><div class="h-48 skeleton rounded-lg"></div><div class="h-48 skeleton rounded-lg"></div>
+            <div class="h-48 skeleton rounded-lg"></div><div class="h-48 skeleton rounded-lg"></div><div class="h-48 skeleton rounded-lg"></div><div class="h-48 skeleton rounded-lg"></div>
+          </div>
+        </div>
+    </section>
+
+    <section id="links-section" class="pt-4 mb-12">
+      <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center" data-translate-key="infoLinks">Informativni Linkovi</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="https://drive.google.com/file/d/1-5nv_nPy3hJDKyox8ipRLdLnLFR-LTvu/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4"><i class="fas fa-comments text-3xl text-[#08ABE6]"></i><div><h3 class="text-xl font-bold" data-translate-key="consultationsTitle">Konsultacije</h3><p class="text-gray-600" data-translate-key="consultationsDesc">Raspored konsultacija za nastavnike</p></div></div>
+        </a>
+        <a href="#trips-section" class="card-link">
+            <div class="flex items-center space-x-4"><i class="fas fa-map-signs text-3xl text-[#08ABE6]"></i><div><h3 class="text-xl font-bold" data-translate-key="tripsTitle">Plan izleta i posjeta</h3><p class="text-gray-600" data-translate-key="tripsDesc">Pogledajte planirane izlete</p></div></div>
+        </a>
+        <a href="#" class="card-link opacity-50 cursor-not-allowed">
+            <div class="flex items-center space-x-4"><i class="fas fa-file-alt text-3xl text-gray-400"></i><div><h3 class="text-xl font-bold" data-translate-key="testsTitle">Pismene provjere</h3><p class="text-gray-600" data-translate-key="testsDesc">Uskoro dostupno</p></div></div>
+        </a>
+        <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=KnsJlDOpkEeyDyfuedX7SBHJH65v9sdGhj0OvjQUhp9UQjVFR01FRUVROTFVVjdZUlUyR1FLVVhSVC4u" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4"><i class="fas fa-address-card text-3xl text-[#08ABE6]"></i><div><h3 class="text-xl font-bold" data-translate-key="booksTitle">Promjena kontakta</h3><p class="text-gray-600" data-translate-key="booksDesc">Ažurirajte vaše kontakt informacije</p></div></div>
+        </a>
+        <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=KnsJlDOpkEeyDyfuedX7SBHJH65v9sdGhj0OvjQUhp9UOElUQkk1VUVYSzZKUENFQTZaNlAwTVcxVS4u" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4"><i class="fas fa-bus text-3xl text-[#08ABE6]"></i><div><h3 class="text-xl font-bold" data-translate-key="transportTitle">Prijevoz</h3><p class="text-gray-600" data-translate-key="transportDesc">Prijava za školski prijevoz</p></div></div>
+        </a>
+        <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=KnsJlDOpkEeyDyfuedX7SBHJH65v9sdGhj0OvjQUhp9UN0dRSkhTRFJLQlUzWDZHTE00VDdRWENaNi4u" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4"><i class="fas fa-utensils text-3xl text-[#08ABE6]"></i><div><h3 class="text-xl font-bold" data-translate-key="foodTitle">Doručak</h3><p class="text-gray-600" data-translate-key="foodDesc">Prijava za školski doručak</p></div></div>
+        </a>
+        <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=KnsJlDOpkEeyDyfuedX7SBHJH65v9sdGhj0OvjQUhp9UOFhIUzRFMVdTQllXMVFURlJFS1cxMFRJUi4u" target="_blank" rel="noopener noreferrer" class="card-link">
+            <div class="flex items-center space-x-4"><i class="fas fa-swimmer text-3xl text-[#08ABE6]"></i><div><h3 class="text-xl font-bold" data-translate-key="swimmingTitle">Škola plivanja</h3><p class="text-gray-600" data-translate-key="swimmingDesc">Prijava za IDSS školu plivanja</p></div></div>
+        </a>
+      </div>
+    </section>
+    
+    <section id="trips-section" class="mb-12 pt-4 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+             <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-3xl font-bold text-gray-800" data-translate-key="tripsSectionTitle">Plan Izleta i Posjeta</h2>
+                <div class="flex items-center space-x-3">
+                    <label for="tripsGradeSelector" class="font-semibold" data-translate-key="selectGrade">Odaberite razred:</label>
+                    <select id="tripsGradeSelector" class="border rounded-md p-2 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#08ABE6]">
+                    </select>
+                </div>
+            </div>
+            <div id="trips-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Skeleton Loader -->
+                <div class="h-32 skeleton rounded-lg"></div>
+                <div class="h-32 skeleton rounded-lg"></div>
+                <div class="h-32 skeleton rounded-lg"></div>
+                <div class="h-32 skeleton rounded-lg"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="calendar-section" class="mb-12 pt-4 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="calendar-month-year" class="text-3xl font-bold text-gray-800 w-full"><div class="h-8 w-64 skeleton"></div></h2>
+                <div class="flex space-x-2">
+                    <button id="prev-month-btn" class="btn p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Previous month">
+                        <i class="fas fa-chevron-left text-gray-600"></i>
+                    </button>
+                    <button id="next-month-btn" class="btn p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Next month">
+                        <i class="fas fa-chevron-right text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="calendar-container">
+                <!-- Skeleton Loader -->
+                <div class="grid grid-cols-7 gap-1 text-center">
+                    <div class="h-6 w-10 skeleton mx-auto"></div><div class="h-6 w-10 skeleton mx-auto"></div><div class="h-6 w-10 skeleton mx-auto"></div><div class="h-6 w-10 skeleton mx-auto"></div><div class="h-6 w-10 skeleton mx-auto"></div><div class="h-6 w-10 skeleton mx-auto"></div><div class="h-6 w-10 skeleton mx-auto"></div>
+                </div>
+                <div class="calendar-grid grid grid-cols-7 gap-0 mt-2">
+                    <div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div>
+                    <div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div>
+                    <div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div>
+                    <div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div>
+                    <div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div><div class="h-28 skeleton"></div>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 border border-red-300 mr-2"></span><span data-translate-key="legendNonWorking">Neradni dani</span></div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 border border-yellow-300 mr-2"></span><span data-translate-key="legendEvents">Događaji</span></div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-200 border border-blue-300 mr-2"></span><span data-translate-key="legendHolidays">Raspusti</span></div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 border border-green-300 mr-2"></span><span data-translate-key="legendNonTeaching">Nenastavni dani</span></div>
+            </div>
+            <div class="mt-6 text-center">
+                <button type="button" id="download-calendar-btn" class="button mx-auto">
+                    <div class="outline"></div>
+                    <div class="state state--default">
+                        <p class="animated-button-text" data-translate-key="downloadCalendarButton">Preuzmi školski kalendar (.ics)</p>
+                        <div class="icon"><img src="https://i.imgur.com/K2Sn9nm.png" alt="Download Calendar" class="h-7"></div>
+                    </div>
+                    <div class="state state--sent">
+                        <p>OK</p>
+                        <div class="icon"><svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 2)"><path d="m1.5 8.5 4 4 8-8"></path><circle cx="8.5" cy="8.5" r="8"></circle></g></svg></div>
+                    </div>
+                </button>
+                <p id="ics-status" class="text-sm mt-2 h-5"></p>
+            </div>
+        </div>
+    </section>
+
+  </main>
+  
+  <footer class="bg-gray-800 text-white mt-12 py-8">
+    <div class="container mx-auto px-4 text-center">
+        <p>&copy; 2025 IDSS Školski portal. Sva prava zadržana.</p>
+    </div>
+  </footer>
+
+  <div id="teacher-modal-overlay" class="modal-overlay"></div>
+  <div id="teacher-modal" class="modal w-11/12 max-w-md">
+    <button id="modal-close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+    <div id="modal-content" class="text-center"></div>
+  </div>
+
+  <div id="trip-modal-overlay" class="modal-overlay"></div>
+  <div id="trip-modal" class="modal w-11/12 max-w-2xl">
+      <button id="trip-modal-close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+      <div id="trip-modal-content"></div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- SPREADSHEET CONFIG ---
+    // Direct "Publish to Web" links are used as they are served with the correct CORS headers by Google.
+    const scheduleSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW_XW4OPVNRbcxqYlpNc7o0T8G56KnchdWDvev-Dx1K66qRVLDdq36YwYl0xmBoQtsDuBX7-CM3Ep7/pub?gid=1801105242&single=true&output=csv";
+    const teachersSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW_XW4OPVNRbcxqYlpNc7o0T8G56KnchdWDvev-Dx1K66qRVLDdq36YwYl0xmBoQtsDuBX7-CM3Ep7/pub?gid=2003751727&single=true&output=csv";
+    const tripsSheetUrl    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW_XW4OPVNRbcxqYlpNc7o0T8G56KnchdWDvev-Dx1K66qRVLDdq36YwYl0xmBoQtsDuBX7-CM3Ep7/pub?gid=97311438&single=true&output=csv";
+    const calendarSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW_XW4OPVNRbcxqYlpNc7o0T8G56KnchdWDvev-Dx1K66qRVLDdq36YwYl0xmBoQtsDuBX7-CM3Ep7/pub?gid=0&single=true&output=csv";
+    const marqueeSheetUrl  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW_XW4OPVNRbcxqYlpNc7o0T8G56KnchdWDvev-Dx1K66qRVLDdq36YwYl0xmBoQtsDuBX7-CM3Ep7/pub?gid=396090986&single=true&output=csv";
+    
+    const translations = {
+        bs: {
+            pageTitle: 'IDSS Školski portal',
+            navSchedule: 'Raspored časova',
+            navTeachers: 'Nastavnici',
+            navCalendar: 'Školski kalendar',
+            navInfo: 'Info',
+            marqueeText: 'Dobrodošli na informativni portal Međunarodne njemačke škole Sarajevo (IDSS). Ovdje možete pronaći raspored časova, školski kalendar i druge važne informacije. || Welcome to the information portal of the International German School Sarajevo (IDSS). Here you can find the class schedule, school calendar, and other important information. || Willkommen auf dem Informationsportal der Internationalen Deutschen Schule Sarajevo (IDSS). Hier finden Sie den Stundenplan, den Schulkalender und weitere wichtige Informationen.',
+            scheduleTitle: 'Raspored časova',
+            selectGrade: 'Odaberite razred:',
+            teachersTitle: 'Nastavnici',
+            teacherSearchPlaceholder: 'Pretraži po imenu ili predmetu...',
+            noTeachersFound: 'Nema rezultata za Vašu pretragu.',
+            consultationsTitle: 'Konsultacije',
+            consultationsDesc: 'Raspored konsultacija za nastavnike',
+            testsTitle: 'Pismene provjere',
+            testsDesc: 'Uskoro dostupno',
+            booksTitle: 'Promjena Kontakta',
+            booksDesc: 'Ažurirajte vaše kontakt informacije',
+            transportTitle: 'Prijevoz',
+            transportDesc: 'Prijava za školski prijevoz',
+            foodTitle: 'Doručak',
+            foodDesc: 'Prijava za školski doručak',
+            infoLinks: 'Informativni Linkovi',
+            schoolCalendarTitle: 'Školski kalendar',
+            legendNonWorking: 'Neradni dani',
+            legendEvents: 'Događaji',
+            legendHolidays: 'Raspusti',
+            legendNonTeaching: 'Nenastavni dani',
+            grade: 'Razred',
+            subject: 'Predmet',
+            teacher: 'Nastavnik',
+            room: 'Učionica',
+            printBtnTitle: 'Štampaj raspored',
+            downloadBtnTitle: 'Preuzmi raspored (PDF)',
+            calendarBtnTitle: 'Preuzmi školski kalendar (PDF)',
+            days: ['Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak'],
+            calendarDays: ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'],
+            months: ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Juni', 'Juli', 'August', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'],
+            tripsTitle: 'Plan izleta i posjeta',
+            tripsDesc: 'Pogledajte planirane izlete',
+            tripsSectionTitle: 'Plan izleta i posjeta',
+            noTripsFound: 'Nema planiranih izleta za ovaj razred.',
+            noTripsAvailable: 'Nema dostupnih izleta.',
+            tripModal: {
+                destination: 'Mjesto posjete',
+                goal: 'Osnovni cilj / Tip aktivnosti',
+                plan: 'Plan Realizacije (Okvirna satnica)',
+                pedagogy: 'Detaljni pedagoški ciljevi',
+                notes: 'Specifične napomene i resursi',
+                contact: 'Odgovorne osobe / podrška'
+            },
+            subjects: 'Predmeti',
+            consultation: 'Konsultacije',
+            teamsBtnTitle: 'Prijavite se na MS Teams',
+            swimmingTitle: 'Škola plivanja',
+            swimmingDesc: 'Prijava za IDSS školu plivanja',
+            downloadCalendarButton: 'Preuzmi školski kalendar (.ics)',
+            icsLoading: 'Generisanje kalendarske datoteke...',
+            icsSuccess: '{count} događaja uspješno dodano u datoteku.',
+            icsError: 'Greška pri generisanju datoteke. Molimo pokušajte ponovo.',
+            icsNoEvents: 'Nema kalendarskih događaja za preuzimanje.'
+        },
+        en: {
+            pageTitle: "IDSS School Portal",
+            navSchedule: "Class Schedule",
+            navTeachers: "Teachers",
+            navCalendar: "School Calendar",
+            navInfo: "Info",
+            marqueeText: "Welcome to the information portal of the International German School Sarajevo (IDSS). Here you can find the class schedule, school calendar, and other important information. || Willkommen auf dem Informationsportal der Internationalen Deutschen Schule Sarajevo (IDSS). Hier finden Sie den Stundenplan, den Schulkalender und weitere wichtige Informationen. || Dobrodošli na informativni portal Međunarodne njemačke škole Sarajevo (IDSS). Ovdje možete pronaći raspored časova, školski kalendar i druge važne informacije.",
+            scheduleTitle: "Class Schedule",
+            selectGrade: "Select grade:",
+            teachersTitle: "Teachers",
+            teacherSearchPlaceholder: "Search by name or subject...",
+            noTeachersFound: "No results for your search.",
+            consultationsTitle: "Consultations",
+            consultationsDesc: "Teacher consultation schedule",
+            testsTitle: "Written tests",
+            testsDesc: "Coming soon",
+            booksTitle: "Contact Change",
+            booksDesc: "Update your contact information",
+            transportTitle: "Transportation",
+            transportDesc: "Application for school transport",
+            foodTitle: "Breakfast",
+            foodDesc: "Application for school breakfast",
+            infoLinks: "Information Links",
+            schoolCalendarTitle: "School Calendar",
+            legendNonWorking: "Non-working days",
+            legendEvents: "Events",
+            legendHolidays: "Holidays",
+            legendNonTeaching: "Non-teaching days",
+            grade: "Grade",
+            subject: "Subject",
+            teacher: "Teacher",
+            room: "Room",
+            printBtnTitle: "Print Schedule",
+            downloadBtnTitle: "Download Schedule (PDF)",
+            calendarBtnTitle: "Download School Calendar (PDF)",
+            days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            calendarDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            tripsTitle: "Trips and Visits Plan",
+            tripsDesc: "See the planned trips",
+            tripsSectionTitle: "Trips and Visits Plan",
+            noTripsFound: "No trips planned for this grade.",
+            noTripsAvailable: "No trips available.",
+            tripModal: {
+                destination: "Destination",
+                goal: "Main Goal / Activity Type",
+                plan: "Realization Plan (Approx. timeline)",
+                pedagogy: "Detailed Pedagogical Goals",
+                notes: "Specific Notes and Resources",
+                contact: "Responsible Persons / Support"
+            },
+            subjects: "Subjects",
+            consultation: "Consultation",
+            teamsBtnTitle: "Login to MS Teams",
+            swimmingTitle: 'Swimming School',
+            swimmingDesc: 'Application for IDSS Swimming School',
+            downloadCalendarButton: 'Download School Calendar (.ics)',
+            icsLoading: 'Generating calendar file...',
+            icsSuccess: '{count} events successfully added to the file.',
+            icsError: 'Error generating calendar file. Please try again.',
+            icsNoEvents: 'No calendar events found to download.'
+        },
+        de: {
+            pageTitle: "IDSS Schulportal",
+            navSchedule: "Stundenplan",
+            navTeachers: "Lehrer",
+            navCalendar: "Schulkalender",
+            navInfo: "Info",
+            marqueeText: "Willkommen auf dem Informationsportal der Internationalen Deutschen Schule Sarajevo (IDSS). Hier finden Sie den Stundenplan, den Schulkalender und weitere wichtige Informationen. || Welcome to the information portal of the International German School Sarajevo (IDSS). Here you can find the class schedule, school calendar, and other important information. || Dobrodošli na informativni portal Međunarodne njemačke škole Sarajevo (IDSS). Ovdje možete pronaći raspored časova, školski kalendar i druge važne informacije.",
+            scheduleTitle: "Stundenplan",
+            selectGrade: "Klasse wählen:",
+            teachersTitle: "Lehrer",
+            teacherSearchPlaceholder: "Suche nach Name oder Fach...",
+            noTeachersFound: "Keine Ergebnisse für Ihre Suche gefunden.",
+            consultationsTitle: "Sprechstunden",
+            consultationsDesc: "Sprechstundenplan der Lehrer",
+            testsTitle: "Schriftliche Tests",
+            testsDesc: "Demnächst verfügbar",
+            booksTitle: "Kontaktänderung",
+            booksDesc: "Aktualisieren Sie Ihre Kontaktinformationen",
+            transportTitle: "Transport",
+            transportDesc: "Anmeldung für den Schultransport",
+            foodTitle: "Frühstück",
+            foodDesc: "Anmeldung für das Schulfrühstück",
+            infoLinks: "Informationslinks",
+            schoolCalendarTitle: "Schulkalender",
+            legendNonWorking: "Arbeitsfreie Tage",
+            legendEvents: "Veranstaltungen",
+            legendHolidays: "Ferien",
+            legendNonTeaching: "Unterrichtsfreie Tage",
+            grade: "Klasse",
+            subject: "Fach",
+            teacher: "Lehrer",
+            room: "Raum",
+            printBtnTitle: "Stundenplan drucken",
+            downloadBtnTitle: "Stundenplan herunterladen (PDF)",
+            calendarBtnTitle: "Schulkalender herunterladen (PDF)",
+            days: ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'],
+            calendarDays: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+            months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+            tripsTitle: "Ausflugs- und Besuchsplan",
+            tripsDesc: "Siehe die geplanten Ausflüge",
+            tripsSectionTitle: "Ausflugs- und Besuchsplan",
+            noTripsFound: "Für diese Klasse sind keine Ausflüge geplant.",
+            noTripsAvailable: "Keine Ausflüge verfügbar.",
+            tripModal: {
+                destination: "Besuchsort",
+                goal: "Hauptziel / Aktivitätstyp",
+                plan: "Realisierungsplan (Ungefährer Zeitplan)",
+                pedagogy: "Detaillierte pädagogische Ziele",
+                notes: "Spezifische Hinweise und Ressourcen",
+                contact: "Verantwortliche Personen / Unterstützung"
+            },
+            subjects: "Fächer",
+            consultation: "Sprechstunde",
+            teamsBtnTitle: "Bei MS Teams anmelden",
+            swimmingTitle: 'Schwimmschule',
+            swimmingDesc: 'Anmeldung zur IDSS Schwimmschule',
+            downloadCalendarButton: 'Schulkalender herunterladen (.ics)',
+            icsLoading: 'Kalenderdatei wird generiert...',
+            icsSuccess: '{count} Ereignisse erfolgreich zur Datei hinzugefügt.',
+            icsError: 'Fehler beim Generieren der Kalenderdatei. Bitte versuchen Sie es erneut.',
+            icsNoEvents: 'Keine Kalenderereignisse zum Herunterladen gefunden.'
+        }
+    };
+
+    const langLocales = { bs: 'bs-BA', en: 'en-US', de: 'de-DE' };
+    const languageSelector = document.getElementById('languageSelector');
+    let currentLang = localStorage.getItem('language') || 'bs';
+    
+    // CALENDAR STATE
+    let eventsByDate = {};
+    let sortedCalendarMonths = [];
+    let currentMonthIndex = 0;
+    
+    const dayAbbreviationMap = {
+        'mon': 'Ponedjeljak', 'tue': 'Utorak', 'wed': 'Srijeda', 
+        'thu': 'Četvrtak', 'fri': 'Petak'
+    };
+    const calendarTypeMap = {
+        'non-teaching': 'nenastavni', 'event': 'događaj',
+        'holiday': 'raspust', 'non-working': 'neradni'
+    };
+    
+    let allTeachersData = [];
+    let teachersDataPromise = null;
+    let fuse = null;
+
+    function getInitials(name) {
+        if (!name) return '?';
+        const parts = name.split(' ').filter(Boolean);
+        if (parts.length === 1) {
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
+    }
+
+    function stringToColor(str) {
+        if (!str) return '#cccccc';
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        const hue = hash % 360;
+        return `hsl(${hue}, 60%, 50%)`;
+    }
+
+    function normalizeString(str) {
+        if (!str) return '';
+        return str
+            .toLowerCase()
+            .trim()
+            .normalize("NFD") // Decompose to base char + diacritic
+            .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+            .replace(/đ/g, 'd') // Handle special case for 'đ'
+            .replace(/\s+/g, ' '); // Collapse multiple whitespaces
+    }
+    
+    function splitButtonText() {
+        document.querySelectorAll('.animated-button-text').forEach(p => {
+            // Use textContent to get the raw, un-styled text
+            const text = p.textContent.trim();
+            if (!text) {
+                p.innerHTML = ''; // Ensure it's empty if no text
+                return;
+            }
+
+            // Use a regular expression to find all non-space characters (\S)
+            // and wrap them in a span for animation. Spaces are left as-is in the HTML string.
+            // The `offset` from the regex replace function provides a unique index for each
+            // character, ensuring a staggered animation.
+            p.innerHTML = text.replace(/(\S)/g, (char, _, offset) => {
+                return `<span style="--i: ${offset};">${char}</span>`;
+            });
+        });
+    }
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('language', lang);
+        languageSelector.value = lang;
+        document.documentElement.lang = lang;
+
+        document.querySelectorAll('[data-translate-key]').forEach(element => {
+            const key = element.getAttribute('data-translate-key');
+            let translation = translations[lang]?.[key] ?? translations['bs'][key];
+             
+            // For buttons, clear content before setting new text to avoid issues with spans
+            if(element.classList.contains('animated-button-text')) {
+                element.textContent = translation || '';
+            } else {
+                 element.innerHTML = translation;
+            }
+        });
+        
+        document.getElementById('printBtn').title = translations[lang].printBtnTitle;
+        document.getElementById('downloadBtn').title = translations[lang].downloadBtnTitle;
+        document.getElementById('teacherSearch').placeholder = translations[lang].teacherSearchPlaceholder;
+        const calendarLink = document.getElementById('downloadCalendarLink');
+        if (calendarLink) {
+            calendarLink.title = translations[lang].calendarBtnTitle;
+        }
+
+        splitButtonText();
+        fetchAndDisplaySchedule();
+        fetchAndDisplayTeachers();
+        renderCurrentCalendarMonth();
+        fetchAndDisplayTrips();
+        fetchMarqueeText();
+        requestAnimationFrame(updateBodyPadding);
+    }
+    
+    languageSelector.addEventListener('change', (e) => setLanguage(e.target.value));
+
+    const gradeSelector = document.getElementById('gradeSelector');
+    gradeSelector.addEventListener('change', fetchAndDisplaySchedule);
+
+    function validateData(data, requiredFields, sectionName) {
+        if (!data || data.length === 0) {
+            throw new Error(`Nema podataka za "${sectionName}". Tabela je možda prazna ili neispravno formatirana.`);
+        }
+        const headers = Object.keys(data[0]); // Headers are already lowercased by parseCSV
+        for (const field of requiredFields) {
+            if (!headers.includes(field)) {
+                const errorMsg = `Podaci za "${sectionName}" su neispravni. Nedostaje obavezna kolona: "${field}". Dostupne kolone su: [${headers.join(', ')}]. Molimo provjerite Google Sheet.`;
+                console.error(errorMsg);
+                throw new Error(errorMsg);
+            }
+        }
+        return true;
+    }
+    
+    function parseCSV(text) {
+        const lines = text.trim().replace(/\r\n/g, '\n').split('\n');
+        if (lines.length < 2) return [];
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const data = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.trim() === '') continue;
+
+            const row = [];
+            let field = '';
+            let inQuotes = false;
+
+            for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+
+                if (char === '"' && j + 1 < line.length && line[j + 1] === '"') {
+                    field += '"';
+                    j++; 
+                } else if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    row.push(field.trim());
+                    field = '';
+                } else {
+                    field += char;
+                }
+            }
+            row.push(field.trim()); 
+
+            if (row.length > 0 && row.some(cell => cell !== '')) {
+                const obj = {};
+                for (let k = 0; k < headers.length; k++) {
+                    obj[headers[k]] = row[k] || '';
+                }
+                data.push(obj);
+            }
+        }
+        return data;
+    }
+
+    function getTeachersData() {
+        if (!teachersDataPromise) {
+            teachersDataPromise = fetch(teachersSheetUrl, { cache: 'no-cache' })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
+                .then(text => {
+                    const data = parseCSV(text);
+                    validateData(data, ['name', 'email', 'subjects'], 'Nastavnici');
+                    return data;
+                });
+        }
+        return teachersDataPromise;
+    }
+
+    async function fetchAndDisplaySchedule() {
+        const grade = gradeSelector.value;
+        const lang = currentLang;
+        const scheduleContainer = document.getElementById('schedule-container');
+
+        try {
+            const [scheduleResponse, teachersData] = await Promise.all([
+                fetch(scheduleSheetUrl, { cache: 'no-cache' }),
+                getTeachersData()
+            ]);
+
+            if (!scheduleResponse.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const scheduleText = await scheduleResponse.text();
+            
+            const scheduleData = parseCSV(scheduleText);
+            
+            validateData(scheduleData, ['razred', 'vrijeme', 'dan', 'predmet'], 'Raspored');
+
+            const gradeSchedule = scheduleData.filter(item => item.razred === grade);
+            
+            const timeSlots = [...new Set(gradeSchedule.map(item => item.vrijeme))].sort((a, b) => {
+                const extractTime = (timeStr) => {
+                    if (!timeStr) return null;
+                    const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+                    if (!match) return null;
+                    return { hours: parseInt(match[1], 10), minutes: parseInt(match[2], 10) };
+                };
+
+                const timeA = extractTime(a);
+                const timeB = extractTime(b);
+
+                if (!timeA && !timeB) return a.localeCompare(b);
+                if (!timeA) return 1;
+                if (!timeB) return -1;
+
+                if (timeA.hours !== timeB.hours) {
+                    return timeA.hours - timeB.hours;
+                }
+                return timeA.minutes - timeB.minutes;
+            });
+            
+            let html = '<div class="schedule-grid">';
+            html += `<div class="schedule-header"></div>`;
+            translations[lang].days.forEach(day => {
+                html += `<div class="schedule-header">${day}</div>`;
+            });
+
+            timeSlots.forEach(slot => {
+                const entriesForSlot = gradeSchedule.filter(item => item.vrijeme === slot);
+                const breakEntry = entriesForSlot.find(item => (item.dan || '').toLowerCase() === 'pauza');
+
+                if (breakEntry) {
+                    html += `<div class="schedule-time">${slot}</div>`;
+                    html += `<div class="schedule-break">${breakEntry.predmet || ''}</div>`;
+                } else {
+                    html += `<div class="schedule-time">${slot}</div>`;
+                    translations[lang].days.forEach((dayKey, dayIndex) => {
+                        const dayBosnian = translations['bs'].days[dayIndex];
+                        const entry = entriesForSlot.find(item => {
+                            const itemDayAbbr = (item.dan || '').toLowerCase();
+                            const mappedDayBosnian = dayAbbreviationMap[itemDayAbbr];
+                            return mappedDayBosnian === dayBosnian;
+                        });
+
+                        if (entry) {
+                            const teacherName = entry.nastavnik || '';
+                            const subjectClass = 'subject-' + ((entry.predmet || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                            html += `<div class="schedule-card ${subjectClass}" tabindex="0" data-teacher-name="${teacherName}">
+                                <span class="font-bold">${entry.predmet || ''}</span>
+                                <span class="text-xs">${teacherName}</span>
+                                <span class="text-xs font-light">${entry.učionica || ''}</span>
+                            </div>`;
+                        } else {
+                            html += `<div></div>`;
+                        }
+                    });
+                }
+            });
+
+            html += '</div>';
+            scheduleContainer.innerHTML = html;
+            
+            const selectedGradeText = gradeSelector.options[gradeSelector.selectedIndex].text;
+            document.getElementById('schedule-print-header').textContent = `${translations[lang].scheduleTitle} - ${selectedGradeText}`;
+
+            setupTeacherModalListeners('.schedule-card', teachersData);
+
+        } catch (error) {
+            console.error('Error fetching or parsing schedule data:', error);
+            scheduleContainer.innerHTML = `<div class="text-red-500 text-center col-span-6 p-4 border border-red-200 rounded-md bg-red-50"><strong>Greška pri učitavanju rasporeda.</strong><p class="text-sm mt-2">${error.message}</p></div>`;
+        }
+    }
+
+    function setupTeacherModalListeners(selector, teachersData) {
+        const modal = document.getElementById('teacher-modal');
+        const overlay = document.getElementById('teacher-modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+
+        document.querySelectorAll(selector).forEach(card => {
+            card.addEventListener('click', () => {
+                const teacherName = (card.getAttribute('data-teacher-name') || '');
+                if (!teacherName) return;
+
+                const normalizedName = normalizeString(teacherName);
+                const teacher = teachersData.find(t => normalizeString(t.name) === normalizedName);
+
+                if (teacher) {
+                    const initials = getInitials(teacher.name);
+                    const bgColor = stringToColor(teacher.name);
+                    modalContent.innerHTML = `
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-24 h-24 rounded-full flex items-center justify-center mb-4 text-white text-4xl font-bold" style="background-color: ${bgColor};">
+                                ${initials}
+                            </div>
+                            <h3 class="text-2xl font-bold mb-2">${teacher.name}</h3>
+                            <a href="mailto:${teacher.email}" class="text-[var(--primary-blue)] hover:underline mb-4">${teacher.email}</a>
+                            <div class="text-left w-full mt-4 border-t pt-4">
+                                <p class="mb-2">
+                                    <strong class="font-semibold text-gray-700">${translations[currentLang].subjects}:</strong> 
+                                    <span class="text-gray-600">${teacher.subjects || ''}</span>
+                                </p>
+                                <p>
+                                    <strong class="font-semibold text-gray-700">${translations[currentLang].consultation}:</strong> 
+                                    <span class="text-gray-600">${teacher.consultation_day || ''} ${teacher.consultation_time || ''}</span>
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                    modal.classList.add('active');
+                    overlay.classList.add('active');
+                }
+            });
+        });
+    }
+
+    function renderTeachers(teachers) {
+        const container = document.getElementById('teachers-container');
+        const lang = currentLang;
+
+        if (teachers.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500">${translations[lang].noTeachersFound}</div>`;
+            return;
+        }
+
+        container.innerHTML = teachers.map(teacher => {
+            const initials = getInitials(teacher.name);
+            const bgColor = stringToColor(teacher.name);
+            return `
+                <div class="teacher-card p-4 bg-white border rounded-lg shadow-sm hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center text-center" data-teacher-name="${teacher.name}" tabindex="0">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-3 text-white text-3xl font-bold" style="background-color: ${bgColor};">
+                        ${initials}
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-800">${teacher.name}</h4>
+                    <a href="mailto:${teacher.email}" class="text-sm text-[var(--primary-blue)] hover:underline break-all">${teacher.email}</a>
+                    <p class="text-xs text-gray-500 mt-2 flex-grow">${(teacher.subjects || '').split(',').join(', ')}</p>
+                </div>
+            `;
+        }).join('');
+
+        setupTeacherModalListeners('#teachers-container .teacher-card', allTeachersData);
+    }
+
+    function setupTeacherSearch() {
+        const searchInput = document.getElementById('teacherSearch');
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = normalizeString(e.target.value);
+            
+            if (!searchTerm) {
+                renderTeachers(allTeachersData);
+                return;
+            }
+
+            if (fuse) {
+                const results = fuse.search(searchTerm);
+                const filteredTeachers = results.map(result => result.item);
+                renderTeachers(filteredTeachers);
+            }
+        });
+    }
+    
+    async function fetchAndDisplayTeachers() {
+        const container = document.getElementById('teachers-container');
+        try {
+            const teachersData = await getTeachersData();
+            allTeachersData = teachersData.map(teacher => ({
+                ...teacher,
+                normalizedName: normalizeString(teacher.name),
+                normalizedSubjects: normalizeString(teacher.subjects)
+            }));
+    
+            const fuseOptions = {
+                keys: ['normalizedName', 'normalizedSubjects'],
+                includeScore: true,
+                threshold: 0.4,
+                ignoreLocation: true,
+            };
+            fuse = new Fuse(allTeachersData, fuseOptions);
+    
+            renderTeachers(allTeachersData);
+        } catch (error) {
+            console.error('Error fetching teachers data:', error);
+            container.innerHTML = `<div class="text-red-500 text-center col-span-full p-4 border border-red-200 rounded-md bg-red-50"><strong>Greška pri učitavanju nastavnika.</strong><p class="text-sm mt-2">${error.message}</p></div>`;
+        }
+    }
+
+
+    // --- TRIPS SECTION LOGIC ---
+    let allTripsData = [];
+    const tripsGradeSelector = document.getElementById('tripsGradeSelector');
+
+    function displayFilteredTrips() {
+        const selectedGrade = tripsGradeSelector.value;
+        const container = document.getElementById('trips-container');
+        
+        const filteredTrips = allTripsData.filter(trip => trip.razred === selectedGrade);
+
+        if (filteredTrips.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500" data-translate-key="noTripsFound">${translations[currentLang].noTripsFound}</div>`;
+            return;
+        }
+
+        container.innerHTML = filteredTrips.map(trip => {
+            const bgColor = stringToColor(trip['mjesto posjete'] || trip.id);
+            return `
+                <div class="trip-card" data-trip-id="${trip.id}" style="background-color: ${bgColor};">
+                    <h4 class="font-bold text-lg">${trip['mjesto posjete']}</h4>
+                    <p class="text-sm opacity-90">${trip['planirani datum']}</p>
+                </div>
+            `;
+        }).join('');
+        
+        setupTripModal(allTripsData);
+    }
+
+    tripsGradeSelector.addEventListener('change', displayFilteredTrips);
+    
+    async function fetchAndDisplayTrips() {
+        const container = document.getElementById('trips-container');
+        try {
+            const response = await fetch(tripsSheetUrl, { cache: 'no-cache' });
+            if (!response.ok) throw new Error(`Network response was not ok for ${tripsSheetUrl}`);
+            const text = await response.text();
+            allTripsData = parseCSV(text);
+            validateData(allTripsData, ['id', 'razred', 'planirani datum', 'mjesto posjete'], 'Izleti');
+            
+            const uniqueGrades = [...new Set(allTripsData.map(trip => trip.razred))].sort((a, b) => {
+                const isPreschoolA = a.toLowerCase().includes('preschool');
+                const isPreschoolB = b.toLowerCase().includes('preschool');
+                if (isPreschoolA && !isPreschoolB) return -1;
+                if (!isPreschoolA && isPreschoolB) return 1;
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                return a.localeCompare(b);
+            });
+            
+            const currentSelection = tripsGradeSelector.value;
+            tripsGradeSelector.innerHTML = uniqueGrades.map(grade => `<option value="${grade}">${grade}</option>`).join('');
+            
+            if (uniqueGrades.includes(currentSelection)) {
+                tripsGradeSelector.value = currentSelection;
+            }
+
+            if (uniqueGrades.length > 0) {
+                displayFilteredTrips();
+            } else {
+                container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500" data-translate-key="noTripsAvailable">${translations[currentLang].noTripsAvailable}</div>`;
+            }
+            
+        } catch (error) {
+            console.error('Error fetching data from Google Sheets:', error);
+            container.innerHTML = `<div class="text-red-500 p-4 border border-red-200 rounded-md bg-red-50 col-span-full"><strong>Greška pri učitavanju plana izleta.</strong><p class="text-sm mt-2">${error.message}</p></div>`;
+        }
+    }
+
+    function setupTripModal(tripsData) {
+        const modal = document.getElementById('trip-modal');
+        const overlay = document.getElementById('trip-modal-overlay');
+        const closeBtn = document.getElementById('trip-modal-close');
+        const modalContent = document.getElementById('trip-modal-content');
+
+        document.querySelectorAll('.trip-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const tripId = card.dataset.tripId;
+                const trip = tripsData.find(t => t.id === tripId);
+                if (trip) {
+                    const lang = currentLang;
+                    const modalKeys = translations[lang].tripModal;
+                    modalContent.innerHTML = `
+                        <h3 class="text-2xl font-bold mb-4 text-center text-[var(--primary-blue)]">${trip['mjesto posjete']}</h3>
+                        <p class="text-center text-gray-500 mb-6 font-semibold">${trip['planirani datum']}</p>
+                        <div class="space-y-4 text-left">
+                            ${createDetailRow(modalKeys.goal, trip['osnovni cilj / tip aktivnosti'])}
+                            ${createDetailRow(modalKeys.plan, trip['plan realizacije (okvirna satnica)'])}
+                            ${createDetailRow(modalKeys.pedagogy, trip['detaljni pedagoški ciljevi aktivnosti'])}
+                            ${createDetailRow(modalKeys.notes, trip['specifične napomene i resursi'])}
+                            ${createDetailRow(modalKeys.contact, trip['odgovorne osobe / podrška'])}
+                        </div>
+                    `;
+                    modal.classList.add('active');
+                    overlay.classList.add('active');
+                }
+            });
+        });
+        
+        function createDetailRow(title, content) {
+            if (!content || content.trim() === '') return '';
+            return `
+                <div>
+                    <h4 class="font-bold text-lg text-gray-700">${title}</h4>
+                    <p class="text-gray-600 whitespace-pre-wrap">${content}</p>
+                </div>`;
+        }
+
+        const closeModal = () => {
+            modal.classList.remove('active');
+            overlay.classList.remove('active');
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', closeModal);
+    }
+    
+    function renderCurrentCalendarMonth() {
+        const container = document.getElementById('calendar-container');
+        const monthYearEl = document.getElementById('calendar-month-year');
+        const prevBtn = document.getElementById('prev-month-btn');
+        const nextBtn = document.getElementById('next-month-btn');
+
+        if (sortedCalendarMonths.length === 0) {
+            container.innerHTML = `<div class="text-gray-500 text-center p-4">Nema kalendarskih podataka za prikaz.</div>`;
+            if (monthYearEl) monthYearEl.textContent = translations[currentLang].schoolCalendarTitle;
+            if(prevBtn) prevBtn.classList.add('hidden');
+            if(nextBtn) nextBtn.classList.add('hidden');
+            return;
+        }
+        
+        if(prevBtn) prevBtn.classList.remove('hidden');
+        if(nextBtn) nextBtn.classList.remove('hidden');
+
+        const monthKey = sortedCalendarMonths[currentMonthIndex];
+        const [year, month] = monthKey.split('-').map(Number); // month is 0-11
+
+        if (monthYearEl) {
+            const monthName = translations[currentLang].months[month];
+            monthYearEl.textContent = `${monthName} ${year}`;
+        }
+        
+        if (prevBtn) prevBtn.disabled = currentMonthIndex === 0;
+        if (nextBtn) nextBtn.disabled = currentMonthIndex >= sortedCalendarMonths.length - 1;
+
+        let html = '';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const weekDaysHtml = translations[currentLang].calendarDays.map(day => `<div class="font-bold py-2 text-gray-600 text-sm uppercase">${day}</div>`).join('');
+        html += `<div class="grid grid-cols-7 gap-1 text-center">${weekDaysHtml}</div>`;
+        html += `<div class="calendar-grid grid grid-cols-7 gap-0">`;
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
+
+        for (let i = 0; i < startDay; i++) {
+            html += `<div class="day-cell other-month"></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentDate = new Date(year, month, day);
+            const isToday = currentDate.getTime() === today.getTime();
+            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayEvents = eventsByDate[dateKey] || [];
+
+            let eventsHtml = '';
+            if (dayEvents.length > 0) {
+                eventsHtml = dayEvents.map(event => {
+                    const rawType = (event.type || '').toLowerCase();
+                    const type = calendarTypeMap[rawType] || rawType;
+                    let bgColor = 'bg-gray-100';
+                    if (type === 'neradni') bgColor = 'bg-red-200';
+                    else if (type === 'događaj') bgColor = 'bg-yellow-200';
+                    else if (type === 'raspust') bgColor = 'bg-blue-200';
+                    else if (type === 'nenastavni') bgColor = 'bg-green-200';
+                    return `<div class="event ${bgColor}" title="${event[`title_${currentLang}`] || event['title_bs']}">${event[`title_${currentLang}`] || event['title_bs']}</div>`;
+                }).join('');
+            }
+
+            html += `<div class="day-cell ${isToday ? 'today' : ''}">
+                        <div class="day-number">${day}</div>
+                        <div class="events">${eventsHtml}</div>
+                        </div>`;
+        }
+
+        const totalCells = startDay + daysInMonth;
+        const remainingCells = (7 - (totalCells % 7)) % 7;
+        for (let i = 0; i < remainingCells; i++) {
+            html += `<div class="day-cell other-month"></div>`;
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+
+    async function initCalendar() {
+        const container = document.getElementById('calendar-container');
+        try {
+            const response = await fetch(calendarSheetUrl, { cache: 'no-cache' });
+            if (!response.ok) throw new Error('Network error');
+            const text = await response.text();
+            const data = parseCSV(text);
+            validateData(data, ['date', 'type', 'title_bs', 'title_en', 'title_de'], 'Kalendar');
+
+            eventsByDate = data.reduce((acc, event) => {
+                if (event.date) {
+                    const dateKey = event.date; // Expects YYYY-MM-DD
+                    if (!acc[dateKey]) acc[dateKey] = [];
+                    acc[dateKey].push(event);
+                }
+                return acc;
+            }, {});
+
+            const monthsToRender = data.reduce((acc, event) => {
+                try {
+                    if (!event.date) return acc;
+                    const date = new Date(event.date + 'T00:00:00');
+                    if (isNaN(date.getTime())) return acc;
+                    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+                    if (!acc.has(monthKey)) {
+                        acc.add(monthKey);
+                    }
+                } catch (e) { /* ignore invalid dates */ }
+                return acc;
+            }, new Set());
+
+            sortedCalendarMonths = [...monthsToRender].sort((a, b) => {
+                const [yearA, monthA] = a.split('-').map(Number);
+                const [yearB, monthB] = b.split('-').map(Number);
+                if (yearA !== yearB) return yearA - yearB;
+                return monthA - monthB;
+            });
+
+            const today = new Date();
+            const currentMonthKey = `${today.getFullYear()}-${today.getMonth()}`;
+            const initialIndex = sortedCalendarMonths.indexOf(currentMonthKey);
+            currentMonthIndex = initialIndex !== -1 ? initialIndex : 0;
+            if(sortedCalendarMonths.length === 0) currentMonthIndex = -1;
+
+            renderCurrentCalendarMonth();
+
+        } catch (error) {
+            console.error("Error fetching calendar data:", error);
+            container.innerHTML = `<div class="text-red-500 p-4 border border-red-200 rounded-md bg-red-50 col-span-full"><strong>Greška pri učitavanju kalendara.</strong><p class="text-sm mt-2">${error.message}</p></div>`;
+        }
+    }
+
+
+    async function fetchMarqueeText() {
+        const marqueeEl = document.querySelector('.marquee-content');
+        try {
+            const response = await fetch(marqueeSheetUrl, { cache: 'no-cache' });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const text = await response.text();
+            const data = parseCSV(text);
+            validateData(data, ['content_bs', 'content_en', 'content_de'], 'Obavijesti');
+            const messages = data.map(row => row[`content_${currentLang}`] || row['content_bs']);
+            marqueeEl.textContent = messages.join(' || ');
+        } catch(error) {
+            console.error("Error fetching marquee text:", error);
+            const fallbackKey = `marqueeText`;
+            if (translations[currentLang] && translations[currentLang][fallbackKey]) {
+                marqueeEl.textContent = translations[currentLang][fallbackKey];
+            } else {
+                 marqueeEl.textContent = translations['bs'].marqueeText; // Ultimate fallback
+            }
+        }
+    }
+    
+    function updateBodyPadding() {
+        const fixedHeader = document.querySelector('.top-fixed-container');
+        if (fixedHeader) {
+            const headerHeight = fixedHeader.offsetHeight;
+            document.body.style.paddingTop = `${headerHeight}px`;
+        }
+    }
+    
+    // --- Section visibility logic ---
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const targetId = this.getAttribute('href').substring(1);
+            if (!targetId) return;
+
+            e.preventDefault(); 
+
+            const isNavButton = this.classList.contains('button');
+            const targetElement = document.getElementById(targetId);
+
+            if (!targetElement) return;
+
+            if (targetId === 'trips-section' || targetId === 'calendar-section') {
+                targetElement.classList.remove('hidden');
+            }
+            
+            requestAnimationFrame(() => {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            });
+
+            if (isNavButton) {
+                setTimeout(() => {
+                    this.blur(); 
+                }, 800);
+            }
+        });
+    });
+
+    // --- Button Actions ---
+    document.getElementById('printBtn').addEventListener('click', () => {
+        window.print();
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        if (typeof window.jspdf === 'undefined' || typeof window.html2canvas === 'undefined') {
+            alert('Greška: Potrebne skripte za generisanje PDF-a nisu uspjele da se učitaju. Molimo provjerite da li ad-blocker blokira resurse i pokušajte ponovo.');
+            console.error('jsPDF or html2canvas is not loaded.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const scheduleElement = document.getElementById('schedule-to-print');
+        const gradeText = document.getElementById('schedule-print-header').textContent;
+
+        html2canvas(scheduleElement, { scale: 2 }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'pt',
+                format: [canvas.width, canvas.height]
+            });
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save(`${gradeText}.pdf`);
+        });
+    });
+    
+    // --- ICS Calendar Download Logic ---
+    function escapeICS(str) {
+        if (!str) return '';
+        return str.replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+    }
+
+    function generateICS(events) {
+        let icsContent = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//IDSS School Portal//NONSGML v1.0//EN',
+            'CALSCALE:GREGORIAN'
+        ];
+
+        const dtStamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+
+        events.forEach(event => {
+            const startDate = new Date(event.date + 'T00:00:00');
+            if (isNaN(startDate.getTime())) return; // Skip invalid dates
+
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 1);
+
+            const startDateStr = startDate.toISOString().slice(0, 10).replace(/-/g, '');
+            const endDateStr = endDate.toISOString().slice(0, 10).replace(/-/g, '');
+
+            const title = event[`title_${currentLang}`] || event['title_bs'];
+            
+            icsContent.push('BEGIN:VEVENT');
+            icsContent.push(`UID:${event.date}-${normalizeString(title)}@idss-portal.com`);
+            icsContent.push(`DTSTAMP:${dtStamp}`);
+            icsContent.push(`DTSTART;VALUE=DATE:${startDateStr}`);
+            icsContent.push(`DTEND;VALUE=DATE:${endDateStr}`);
+            icsContent.push(`SUMMARY:${escapeICS(title)}`);
+            icsContent.push(`DESCRIPTION:${escapeICS('Tip: ' + event.type)}`);
+            icsContent.push(`CATEGORIES:${escapeICS(event.type)}`);
+            icsContent.push('END:VEVENT');
+        });
+
+        icsContent.push('END:VCALENDAR');
+        return icsContent.join('\r\n');
+    }
+    
+    function downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/calendar;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    document.getElementById('download-calendar-btn').addEventListener('click', () => {
+        const statusEl = document.getElementById('ics-status');
+        const lang = currentLang;
+        
+        statusEl.textContent = translations[lang].icsLoading;
+        statusEl.className = 'text-sm mt-2 h-5 text-gray-600';
+
+        setTimeout(() => {
+            try {
+                const allEvents = Object.values(eventsByDate).flat();
+
+                if (allEvents.length === 0) {
+                    statusEl.textContent = translations[lang].icsNoEvents;
+                    statusEl.className = 'text-sm mt-2 h-5 text-yellow-600';
+                    return;
+                }
+
+                const icsData = generateICS(allEvents);
+                downloadFile('school-calendar.ics', icsData);
+
+                statusEl.textContent = translations[lang].icsSuccess.replace('{count}', allEvents.length);
+                statusEl.className = 'text-sm mt-2 h-5 text-green-600';
+
+            } catch (error) {
+                console.error("Error generating ICS file:", error);
+                statusEl.textContent = translations[lang].icsError;
+                statusEl.className = 'text-sm mt-2 h-5 text-red-600';
+            }
+        }, 100);
+    });
+
+    // --- Initial Setup ---
+    const teacherModal = document.getElementById('teacher-modal');
+    const teacherOverlay = document.getElementById('teacher-modal-overlay');
+    const teacherCloseBtn = document.getElementById('modal-close');
+    const closeTeacherModal = () => {
+        teacherModal.classList.remove('active');
+        teacherOverlay.classList.remove('active');
+    };
+    teacherCloseBtn.addEventListener('click', closeTeacherModal);
+    teacherOverlay.addEventListener('click', closeTeacherModal);
+    
+    document.getElementById('prev-month-btn')?.addEventListener('click', () => {
+        if (currentMonthIndex > 0) {
+            currentMonthIndex--;
+            renderCurrentCalendarMonth();
+        }
+    });
+    document.getElementById('next-month-btn')?.addEventListener('click', () => {
+        if (currentMonthIndex < sortedCalendarMonths.length - 1) {
+            currentMonthIndex++;
+            renderCurrentCalendarMonth();
+        }
+    });
+    
+    updateBodyPadding();
+    window.addEventListener('resize', updateBodyPadding);
+    
+    setupTeacherSearch();
+    initCalendar();
+    setLanguage(currentLang);
+});
+</script>
+</body>
+</html>
